@@ -50,7 +50,20 @@ app.on('window-all-closed', () => {
 
 // Native file drag-out support
 ipcMain.on('ondragstart', (event, files) => {
-  const iconPath = path.join(__dirname, 'icon.png');
+  const fs = require('fs');
+  let isDirectory = false;
+  try {
+    const targetFile = Array.isArray(files) ? files[0] : files;
+    if (targetFile && fs.existsSync(targetFile)) {
+      isDirectory = fs.statSync(targetFile).isDirectory();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  const iconName = isDirectory ? 'drag_folder.png' : 'drag_file.png';
+  const iconPath = path.join(__dirname, iconName);
+
   if (Array.isArray(files)) {
     event.sender.startDrag({
       files: files,

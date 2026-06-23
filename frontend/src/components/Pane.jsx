@@ -839,6 +839,51 @@ const Pane = ({
       return;
     }
 
+    // Custom drag image for internal HTML5 drag-and-drop between panes
+    try {
+      const ghost = document.createElement('div');
+      ghost.style.position = 'absolute';
+      ghost.style.top = '-1000px';
+      ghost.style.left = '-1000px';
+      ghost.style.padding = '6px 12px';
+      ghost.style.background = 'rgba(15, 23, 42, 0.95)';
+      ghost.style.color = '#fff';
+      ghost.style.border = '1px solid rgba(59, 130, 246, 0.6)';
+      ghost.style.borderRadius = '6px';
+      ghost.style.fontSize = '12px';
+      ghost.style.fontFamily = 'sans-serif';
+      ghost.style.display = 'flex';
+      ghost.style.alignItems = 'center';
+      ghost.style.gap = '6px';
+      ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+      ghost.style.pointerEvents = 'none';
+      ghost.style.whiteSpace = 'nowrap';
+      ghost.style.zIndex = '9999';
+
+      const iconSpan = document.createElement('span');
+      iconSpan.textContent = item.isDirectory ? '📁' : '📄';
+      ghost.appendChild(iconSpan);
+
+      const textSpan = document.createElement('span');
+      if (pathsToDrag.length <= 1) {
+        textSpan.textContent = item.name;
+      } else {
+        textSpan.textContent = `${item.name} (+${pathsToDrag.length - 1} tệp)`;
+      }
+      ghost.appendChild(textSpan);
+
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 15, 15);
+
+      setTimeout(() => {
+        if (document.body.contains(ghost)) {
+          document.body.removeChild(ghost);
+        }
+      }, 0);
+    } catch (err) {
+      console.error('Failed to set drag image:', err);
+    }
+
     // Fallback: internal HTML5 drag-and-drop between panes
     e.dataTransfer.setData('application/json', JSON.stringify({
       sourcePaths: pathsToDrag,
