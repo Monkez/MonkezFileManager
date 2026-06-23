@@ -566,13 +566,12 @@ const Pane = ({
   };
 
   // File Icon resolver
-  // File Icon resolver
   const getFileIcon = (item) => {
     if (item.isDirectory) return <Folder className="file-icon folder" size={16} />;
     
     const ext = item.ext;
-    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
-    const genericImages = ['.svg', '.ico'];
+    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg'];
+    const genericImages = [];
     const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
     const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
@@ -610,8 +609,8 @@ const Pane = ({
     }
     
     const ext = item.ext;
-    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
-    const genericImages = ['.svg', '.ico'];
+    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg'];
+    const genericImages = [];
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
 
     if (thumbnailImages.includes(ext)) {

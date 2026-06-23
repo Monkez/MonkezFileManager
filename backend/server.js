@@ -468,13 +468,32 @@ app.get('/api/preview', (req, res) => {
 app.get('/api/raw', (req, res) => {
   const filePath = req.query.path;
   if (!filePath) {
-    return res.status(400).json({ error: 'Missing path' });
+    return res.status(400).send('File not found');
   }
 
   try {
     if (!fs.existsSync(filePath)) {
       return res.status(404).send('File not found');
     }
+    
+    // Set explicit content-type headers for images to prevent application/octet-stream fallback
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.ico') {
+      res.setHeader('Content-Type', 'image/x-icon');
+    } else if (ext === '.svg') {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    } else if (ext === '.png') {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (ext === '.gif') {
+      res.setHeader('Content-Type', 'image/gif');
+    } else if (ext === '.webp') {
+      res.setHeader('Content-Type', 'image/webp');
+    } else if (ext === '.bmp') {
+      res.setHeader('Content-Type', 'image/bmp');
+    }
+    
     res.sendFile(filePath);
   } catch (err) {
     res.status(500).send(err.message);

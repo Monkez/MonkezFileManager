@@ -51,6 +51,7 @@ app.on('window-all-closed', () => {
 // Native file drag-out support
 ipcMain.on('ondragstart', (event, files) => {
   const fs = require('fs');
+  const { nativeImage } = require('electron');
   let isDirectory = false;
   try {
     const targetFile = Array.isArray(files) ? files[0] : files;
@@ -68,15 +69,20 @@ ipcMain.on('ondragstart', (event, files) => {
     iconPath = path.join(__dirname, 'icon.png');
   }
 
+  let dragIcon = nativeImage.createFromPath(iconPath);
+  if (dragIcon.isEmpty()) {
+    dragIcon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
+  }
+
   if (Array.isArray(files)) {
     event.sender.startDrag({
       files: files,
-      icon: iconPath
+      icon: dragIcon
     });
   } else {
     event.sender.startDrag({
       file: files,
-      icon: iconPath
+      icon: dragIcon
     });
   }
 });

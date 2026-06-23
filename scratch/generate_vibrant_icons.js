@@ -38,14 +38,14 @@ const writeChunk = (type, data) => {
   return Buffer.concat([lenBuf, typeAndData, crcBuf]);
 };
 
-// Generate 64x64 PNG buffer from 32x32 pixel shader (nearest neighbor scale to 64x64)
-const generatePNG64 = (pixelShader) => {
+// Generate 256x256 PNG buffer from 32x32 pixel shader (nearest neighbor scale to 256x256)
+const generatePNG256 = (pixelShader) => {
   const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
   
   // IHDR chunk
   const ihdrData = Buffer.alloc(13);
-  ihdrData.writeUInt32BE(64, 0); // width 64
-  ihdrData.writeUInt32BE(64, 4); // height 64
+  ihdrData.writeUInt32BE(256, 0); // width 256
+  ihdrData.writeUInt32BE(256, 4); // height 256
   ihdrData.write(
     '\x08' + // bit depth
     '\x06' + // color type: RGBA
@@ -57,15 +57,15 @@ const generatePNG64 = (pixelShader) => {
   const ihdrChunk = writeChunk('IHDR', ihdrData);
   
   // IDAT chunk data (uncompressed scanlines)
-  // Each scanline is 1 byte filter type (0) + 64 * 4 bytes RGBA = 257 bytes
-  const scanlines = Buffer.alloc(64 * 257);
-  for (let y = 0; y < 64; y++) {
-    const rowOffset = y * 257;
+  // Each scanline is 1 byte filter type (0) + 256 * 4 bytes RGBA = 1025 bytes
+  const scanlines = Buffer.alloc(256 * 1025);
+  for (let y = 0; y < 256; y++) {
+    const rowOffset = y * 1025;
     scanlines[rowOffset] = 0; // Filter type 0
-    const sourceY = Math.floor(y / 2);
-    for (let x = 0; x < 64; x++) {
+    const sourceY = Math.floor(y / 8); // Scale factor 8
+    for (let x = 0; x < 256; x++) {
       const pixelOffset = rowOffset + 1 + x * 4;
-      const sourceX = Math.floor(x / 2);
+      const sourceX = Math.floor(x / 8); // Scale factor 8
       const color = pixelShader(sourceX, sourceY);
       scanlines[pixelOffset] = color.r;
       scanlines[pixelOffset + 1] = color.g;
@@ -180,14 +180,14 @@ const getFileColor = (x, y) => {
 };
 
 // Write files to root
-fs.writeFileSync(path.join(__dirname, '../drag_folder.png'), generatePNG64(getFolderColor));
-fs.writeFileSync(path.join(__dirname, '../drag_file.png'), generatePNG64(getFileColor));
+fs.writeFileSync(path.join(__dirname, '../drag_folder.png'), generatePNG256(getFolderColor));
+fs.writeFileSync(path.join(__dirname, '../drag_file.png'), generatePNG256(getFileColor));
 
 // Write files to frontend/public so they are copied to dist/ and served correctly
 const publicDir = path.join(__dirname, '../frontend/public');
 if (fs.existsSync(publicDir)) {
-  fs.writeFileSync(path.join(publicDir, 'drag_folder.png'), generatePNG64(getFolderColor));
-  fs.writeFileSync(path.join(publicDir, 'drag_file.png'), generatePNG64(getFileColor));
+  fs.writeFileSync(path.join(publicDir, 'drag_folder.png'), generatePNG256(getFolderColor));
+  fs.writeFileSync(path.join(publicDir, 'drag_file.png'), generatePNG256(getFileColor));
 }
 
-console.log('Successfully generated premium 64x64 drag icons in root and frontend/public!');
+console.log('Successfully generated premium 256x256 drag icons in root and frontend/public!');
