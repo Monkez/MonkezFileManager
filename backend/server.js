@@ -464,6 +464,209 @@ app.get('/api/preview', (req, res) => {
   }
 });
 
+// ICO to PNG converter — parses the ICO binary directory and extracts the best image as PNG
+// ICO entries can be either embedded PNG or raw BMP pixel data (DIB).
+function icoToPng(icoBuffer) {
+  const zlib = require('zlib');
+
+  if (icoBuffer.length < 6) return null;
+  const reserved = icoBuffer.readUInt16LE(0);
+  const type = icoBuffer.readUInt16LE(2);
+  const count = icoBuffer.readUInt16LE(4);
+  if (reserved !== 0 || (type !== 1 && type !== 2) || count === 0) return null;
+
+  // Parse ICO directory entries, pick the largest one
+  let bestEntry = null;
+  let bestPixels = 0;
+  for (let i = 0; i < count; i++) {
+    const offset = 6 + i * 16;
+    if (offset + 16 > icoBuffer.length) break;
+    let w = icoBuffer.readUInt8(offset);
+    let h = icoBuffer.readUInt8(offset + 1);
+    if (w === 0) w = 256;
+    if (h === 0) h = 256;
+    const dataSize = icoBuffer.readUInt32LE(offset + 8);
+    const dataOffset = icoBuffer.readUInt32LE(offset + 12);
+    const pixels = w * h;
+    if (pixels > bestPixels && dataOffset + dataSize <= icoBuffer.length) {
+      bestPixels = pixels;
+      bestEntry = { w, h, dataSize, dataOffset };
+    }
+  }
+  if (!bestEntry) return null;
+
+  const imgData = icoBuffer.slice(bestEntry.dataOffset, bestEntry.dataOffset + bestEntry.dataSize);
+
+  // Check if the entry is already PNG (starts with PNG magic header)
+  if (imgData.length >= 8 && imgData[0] === 0x89 && imgData[1] === 0x50 && imgData[2] === 0x4E && imgData[3] === 0x47) {
+    return imgData; // Already a PNG, return as-is
+  }
+
+  // Otherwise it's a BMP DIB — convert to PNG
+  try {
+    // BMP info header (BITMAPINFOHEADER)
+    const biSize = imgData.readUInt32LE(0);
+    const biWidth = imgData.readInt32LE(4);
+    // biHeight in ICO is doubled (includes mask), actual image height is half
+    const biHeightFull = imgData.readInt32LE(8);
+    const biHeight = Math.abs(biHeightFull) / 2;
+    const biBitCount = imgData.readUInt16LE(14);
+    const w = biWidth;
+    const h = biHeight;
+
+    if (w <= 0 || h <= 0 || w > 1024 || h > 1024) return null;
+
+    // Parse pixel data based on bit depth
+    let pixelDataOffset = biSize;
+    let palette = [];
+
+    if (biBitCount <= 8) {
+      const paletteCount = 1 << biBitCount;
+      for (let i = 0; i < paletteCount; i++) {
+        const po = biSize + i * 4;
+        if (po + 4 > imgData.length) break;
+        palette.push({
+          b: imgData.readUInt8(po),
+          g: imgData.readUInt8(po + 1),
+          r: imgData.readUInt8(po + 2),
+          a: 255
+        });
+      }
+      pixelDataOffset = biSize + paletteCount * 4;
+    }
+
+    // XOR mask (color data) — rows are bottom-up and padded to 4-byte boundaries
+    const xorRowSize = Math.ceil((w * biBitCount) / 32) * 4;
+    const andRowSize = Math.ceil(w / 32) * 4;
+    const xorData = imgData.slice(pixelDataOffset, pixelDataOffset + xorRowSize * h);
+    const andData = imgData.slice(pixelDataOffset + xorRowSize * h, pixelDataOffset + xorRowSize * h + andRowSize * h);
+
+    // Build RGBA pixel array (top-to-bottom)
+    const rgba = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++) {
+      const srcY = h - 1 - y; // BMP is bottom-up
+      for (let x = 0; x < w; x++) {
+        const dstIdx = (y * w + x) * 4;
+        let r = 0, g = 0, b = 0, a = 255;
+
+        if (biBitCount === 32) {
+          const srcIdx = srcY * xorRowSize + x * 4;
+          if (srcIdx + 3 < xorData.length) {
+            b = xorData[srcIdx];
+            g = xorData[srcIdx + 1];
+            r = xorData[srcIdx + 2];
+            a = xorData[srcIdx + 3];
+          }
+        } else if (biBitCount === 24) {
+          const srcIdx = srcY * xorRowSize + x * 3;
+          if (srcIdx + 2 < xorData.length) {
+            b = xorData[srcIdx];
+            g = xorData[srcIdx + 1];
+            r = xorData[srcIdx + 2];
+          }
+        } else if (biBitCount === 8) {
+          const srcIdx = srcY * xorRowSize + x;
+          if (srcIdx < xorData.length) {
+            const paletteIdx = xorData[srcIdx];
+            if (paletteIdx < palette.length) {
+              r = palette[paletteIdx].r;
+              g = palette[paletteIdx].g;
+              b = palette[paletteIdx].b;
+            }
+          }
+        } else if (biBitCount === 4) {
+          const srcIdx = srcY * xorRowSize + Math.floor(x / 2);
+          if (srcIdx < xorData.length) {
+            const nibble = (x % 2 === 0) ? (xorData[srcIdx] >> 4) : (xorData[srcIdx] & 0x0F);
+            if (nibble < palette.length) {
+              r = palette[nibble].r;
+              g = palette[nibble].g;
+              b = palette[nibble].b;
+            }
+          }
+        } else if (biBitCount === 1) {
+          const srcIdx = srcY * xorRowSize + Math.floor(x / 8);
+          if (srcIdx < xorData.length) {
+            const bit = (xorData[srcIdx] >> (7 - (x % 8))) & 1;
+            if (bit < palette.length) {
+              r = palette[bit].r;
+              g = palette[bit].g;
+              b = palette[bit].b;
+            }
+          }
+        }
+
+        // Apply AND mask for transparency (if no alpha channel in 32-bit)
+        if (biBitCount !== 32 && andData.length > 0) {
+          const andIdx = srcY * andRowSize + Math.floor(x / 8);
+          if (andIdx < andData.length) {
+            const andBit = (andData[andIdx] >> (7 - (x % 8))) & 1;
+            if (andBit === 1) a = 0; // transparent
+          }
+        }
+
+        rgba[dstIdx] = r;
+        rgba[dstIdx + 1] = g;
+        rgba[dstIdx + 2] = b;
+        rgba[dstIdx + 3] = a;
+      }
+    }
+
+    // Encode as PNG using zlib
+    // PNG filter type 0 (None) for each row
+    const rawData = Buffer.alloc(h * (1 + w * 4));
+    for (let y = 0; y < h; y++) {
+      rawData[y * (1 + w * 4)] = 0; // filter byte
+      rgba.copy(rawData, y * (1 + w * 4) + 1, y * w * 4, (y + 1) * w * 4);
+    }
+
+    const deflated = zlib.deflateSync(rawData);
+
+    // Build PNG file
+    const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+    const makeCRC = (type, data) => {
+      const combined = Buffer.concat([type, data]);
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < combined.length; i++) {
+        crc ^= combined[i];
+        for (let k = 0; k < 8; k++) {
+          crc = (crc >>> 1) ^ ((crc & 1) ? 0xEDB88320 : 0);
+        }
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    };
+
+    const makeChunk = (typeStr, data) => {
+      const type = Buffer.from(typeStr, 'ascii');
+      const length = Buffer.alloc(4);
+      length.writeUInt32BE(data.length, 0);
+      const crc = Buffer.alloc(4);
+      crc.writeUInt32BE(makeCRC(type, data), 0);
+      return Buffer.concat([length, type, data, crc]);
+    };
+
+    // IHDR
+    const ihdrData = Buffer.alloc(13);
+    ihdrData.writeUInt32BE(w, 0);
+    ihdrData.writeUInt32BE(h, 4);
+    ihdrData[8] = 8; // bit depth
+    ihdrData[9] = 6; // color type (RGBA)
+    ihdrData[10] = 0; // compression
+    ihdrData[11] = 0; // filter
+    ihdrData[12] = 0; // interlace
+
+    const ihdr = makeChunk('IHDR', ihdrData);
+    const idat = makeChunk('IDAT', deflated);
+    const iend = makeChunk('IEND', Buffer.alloc(0));
+
+    return Buffer.concat([pngSignature, ihdr, idat, iend]);
+  } catch (err) {
+    console.error('ICO BMP-to-PNG conversion failed:', err.message);
+    return null;
+  }
+}
+
 // 10. Raw File Streaming API (For image/audio/video src tags)
 app.get('/api/raw', (req, res) => {
   const filePath = req.query.path;
@@ -478,9 +681,26 @@ app.get('/api/raw', (req, res) => {
     
     // Set explicit content-type headers for images to prevent application/octet-stream fallback
     const ext = path.extname(filePath).toLowerCase();
+
     if (ext === '.ico') {
+      // Convert ICO to PNG for browser compatibility (Chromium cannot render .ico in <img>)
+      try {
+        const icoData = fs.readFileSync(filePath);
+        const pngData = icoToPng(icoData);
+        if (pngData) {
+          res.setHeader('Content-Type', 'image/png');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(pngData);
+        }
+      } catch (e) {
+        console.error('ICO conversion failed, falling back to raw:', e.message);
+      }
+      // Fallback: serve as-is
       res.setHeader('Content-Type', 'image/x-icon');
-    } else if (ext === '.svg') {
+      return res.sendFile(filePath);
+    }
+
+    if (ext === '.svg') {
       res.setHeader('Content-Type', 'image/svg+xml');
     } else if (ext === '.png') {
       res.setHeader('Content-Type', 'image/png');
