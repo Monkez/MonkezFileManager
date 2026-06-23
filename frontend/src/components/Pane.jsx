@@ -845,24 +845,25 @@ const Pane = ({
       ghost.style.position = 'absolute';
       ghost.style.top = '-1000px';
       ghost.style.left = '-1000px';
-      ghost.style.padding = '6px 12px';
-      ghost.style.background = 'rgba(15, 23, 42, 0.95)';
-      ghost.style.color = '#fff';
-      ghost.style.border = '1px solid rgba(59, 130, 246, 0.6)';
-      ghost.style.borderRadius = '6px';
-      ghost.style.fontSize = '12px';
-      ghost.style.fontFamily = 'sans-serif';
       ghost.style.display = 'flex';
       ghost.style.alignItems = 'center';
-      ghost.style.gap = '6px';
-      ghost.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
-      ghost.style.pointerEvents = 'none';
+      ghost.style.gap = '8px';
+      ghost.style.padding = '4px 8px';
+      ghost.style.background = 'transparent';
+      ghost.style.color = '#fff';
+      ghost.style.fontFamily = 'sans-serif';
+      ghost.style.fontSize = '12px';
       ghost.style.whiteSpace = 'nowrap';
+      ghost.style.pointerEvents = 'none';
       ghost.style.zIndex = '9999';
 
-      const iconSpan = document.createElement('span');
-      iconSpan.textContent = item.isDirectory ? '📁' : '📄';
-      ghost.appendChild(iconSpan);
+      // Load the exact same PNG drag icons
+      const img = document.createElement('img');
+      img.src = item.isDirectory ? '/drag_folder.png' : '/drag_file.png';
+      img.style.width = '32px';
+      img.style.height = '32px';
+      img.style.objectFit = 'contain';
+      ghost.appendChild(img);
 
       const textSpan = document.createElement('span');
       if (pathsToDrag.length <= 1) {
@@ -870,10 +871,11 @@ const Pane = ({
       } else {
         textSpan.textContent = `${item.name} (+${pathsToDrag.length - 1} tệp)`;
       }
+      textSpan.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
       ghost.appendChild(textSpan);
 
       document.body.appendChild(ghost);
-      e.dataTransfer.setDragImage(ghost, 15, 15);
+      e.dataTransfer.setDragImage(ghost, 16, 16);
 
       setTimeout(() => {
         if (document.body.contains(ghost)) {
