@@ -51,6 +51,7 @@ app.on('window-all-closed', () => {
 // Native file drag-out support
 ipcMain.on('ondragstart', (event, files) => {
   const fs = require('fs');
+  const { nativeImage } = require('electron');
   let isDirectory = false;
   try {
     const targetFile = Array.isArray(files) ? files[0] : files;
@@ -64,15 +65,26 @@ ipcMain.on('ondragstart', (event, files) => {
   const iconName = isDirectory ? 'drag_folder.png' : 'drag_file.png';
   const iconPath = path.join(__dirname, iconName);
 
+  let dragIcon = nativeImage.createFromPath(iconPath);
+  if (dragIcon.isEmpty()) {
+    // Fallback to default application icon
+    dragIcon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
+  }
+
+  // Force size to 32x32 to avoid large blurry drag shapes
+  if (!dragIcon.isEmpty()) {
+    dragIcon = dragIcon.resize({ width: 32, height: 32 });
+  }
+
   if (Array.isArray(files)) {
     event.sender.startDrag({
       files: files,
-      icon: iconPath
+      icon: dragIcon
     });
   } else {
     event.sender.startDrag({
       file: files,
-      icon: iconPath
+      icon: dragIcon
     });
   }
 });
