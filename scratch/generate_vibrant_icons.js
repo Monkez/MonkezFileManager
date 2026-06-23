@@ -82,7 +82,11 @@ const generatePNG64 = (pixelShader) => {
 
 // Folder Icon Shader (Amber/Yellow Folder with Slate 900 Border)
 const getFolderColor = (x, y) => {
-  const inFolder = (x >= 4 && x <= (12 + (y - 4)) && y >= 4 && y <= 7) || (x >= 2 && x <= 29 && y >= 8 && y <= 27);
+  const inFolderAt = (px, py) => {
+    return (px >= 4 && px <= (12 + (py - 4)) && py >= 4 && py <= 7) || (px >= 2 && px <= 29 && py >= 8 && py <= 27);
+  };
+
+  const inFolder = inFolderAt(x, y);
   if (!inFolder) {
     return { r: 0, g: 0, b: 0, a: 0 };
   }
@@ -92,19 +96,25 @@ const getFolderColor = (x, y) => {
     return { r: 15, g: 23, b: 42, a: 255 };
   }
   
-  // Outline check
-  const inFolderLeft = (x - 1 >= 4 && x - 1 <= (12 + (y - 4)) && y >= 4 && y <= 7) || (x - 1 >= 2 && x - 1 <= 29 && y >= 8 && y <= 27);
-  const inFolderRight = (x + 1 >= 4 && x + 1 <= (12 + (y - 4)) && y >= 4 && y <= 7) || (x + 1 >= 2 && x + 1 <= 29 && y >= 8 && y <= 27);
-  const inFolderUp = (x >= 4 && x <= (12 + (y - 1 - 4)) && y - 1 >= 4 && y - 1 <= 7) || (x >= 2 && x <= 29 && y - 1 >= 8 && y - 1 <= 27);
-  const inFolderDown = (x >= 4 && x <= (12 + (y + 1 - 4)) && y + 1 >= 4 && y + 1 <= 7) || (x >= 2 && x <= 29 && y + 1 >= 8 && y + 1 <= 27);
+  // Outline check (8-neighbors for thicker outer border)
+  let isOutline = false;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (!inFolderAt(x + dx, y + dy)) {
+        isOutline = true;
+        break;
+      }
+    }
+    if (isOutline) break;
+  }
   
-  if (!inFolderLeft || !inFolderRight || !inFolderUp || !inFolderDown) {
+  if (isOutline) {
     return { r: 15, g: 23, b: 42, a: 255 };
   }
   
   // Paper check
-  const inPaper = y >= 5 && y <= 11 && x >= 8 && x <= 23;
-  if (inPaper) {
+  const inPaperAt = (px, py) => py >= 5 && py <= 11 && px >= 8 && px <= 23;
+  if (inPaperAt(x, y)) {
     const isPaperOutline = y === 5 || x === 8 || x === 23;
     if (isPaperOutline) {
       return { r: 15, g: 23, b: 42, a: 255 };
@@ -112,27 +122,37 @@ const getFolderColor = (x, y) => {
     return { r: 255, g: 255, b: 255, a: 255 };
   }
   
-  // Body and tab fill
+  // Body and tab fill (Vibrant golden amber)
   if (y >= 15) {
-    return { r: 245, g: 158, b: 11, a: 255 }; // Amber 500 (darker yellow pocket)
+    return { r: 217, g: 119, b: 6, a: 255 }; // Amber 600
   }
-  return { r: 251, g: 191, b: 36, a: 255 }; // Amber 400 (lighter yellow tab/upper body)
+  return { r: 245, g: 158, b: 11, a: 255 }; // Amber 500
 };
 
-// File Icon Shader (Crisp White Page with Dog-ear, Slate 900 Outline, Sky 600 Text lines)
+// File Icon Shader (Slate 200 Page with Dog-ear, Slate 900 Outline, Blue 900 Text lines)
 const getFileColor = (x, y) => {
-  const inPage = x >= 4 && x <= 27 && y >= 2 && y <= 29 && !(y < 9 && x > 18 + y);
+  const inPageAt = (px, py) => {
+    return px >= 4 && px <= 27 && py >= 2 && py <= 29 && !(py < 9 && px > 18 + py);
+  };
+
+  const inPage = inPageAt(x, y);
   if (!inPage) {
     return { r: 0, g: 0, b: 0, a: 0 };
   }
   
-  // Outer outline check
-  const inPageLeft = (x - 1 >= 4 && x - 1 <= 27 && y >= 2 && y <= 29 && !(y < 9 && (x - 1) > 18 + y));
-  const inPageRight = (x + 1 >= 4 && x + 1 <= 27 && y >= 2 && y <= 29 && !(y < 9 && (x + 1) > 18 + y));
-  const inPageUp = (x >= 4 && x <= 27 && y - 1 >= 2 && y - 1 <= 29 && !(y - 1 < 9 && x > 18 + (y - 1)));
-  const inPageDown = (x >= 4 && x <= 27 && y + 1 >= 2 && y + 1 <= 29 && !(y + 1 < 9 && x > 18 + (y + 1)));
+  // Outline check (8-neighbors for thicker outer border)
+  let isOutline = false;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (!inPageAt(x + dx, y + dy)) {
+        isOutline = true;
+        break;
+      }
+    }
+    if (isOutline) break;
+  }
   
-  if (!inPageLeft || !inPageRight || !inPageUp || !inPageDown) {
+  if (isOutline) {
     return { r: 15, g: 23, b: 42, a: 255 };
   }
   
@@ -145,18 +165,18 @@ const getFileColor = (x, y) => {
   // Folded triangle fill
   const inFold = x >= 20 && y >= 2 && y <= 9 && (x - 20) < (y - 2);
   if (inFold) {
-    return { r: 203, g: 213, b: 225, a: 255 }; // Slate 300
+    return { r: 148, g: 163, b: 184, a: 255 }; // Slate 400
   }
   
-  // Text lines (draw Sky 600 color)
+  // Text lines (draw Blue 900 color for high contrast)
   if ((y === 13 && x >= 8 && x <= 23) ||
       (y === 17 && x >= 8 && x <= 20) ||
       (y === 21 && x >= 8 && x <= 23) ||
       (y === 25 && x >= 8 && x <= 16)) {
-    return { r: 2, g: 132, b: 199, a: 255 };
+    return { r: 30, g: 58, b: 138, a: 255 }; // Blue 900
   }
   
-  return { r: 255, g: 255, b: 255, a: 255 };
+  return { r: 226, g: 232, b: 240, a: 255 }; // Slate 200 (light grey-white page)
 };
 
 // Write files to root

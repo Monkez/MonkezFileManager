@@ -566,22 +566,25 @@ const Pane = ({
   };
 
   // File Icon resolver
+  // File Icon resolver
   const getFileIcon = (item) => {
     if (item.isDirectory) return <Folder className="file-icon folder" size={16} />;
     
     const ext = item.ext;
-    const images = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'];
+    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
+    const genericImages = ['.svg', '.ico'];
     const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
     const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
 
-    if (images.includes(ext)) {
+    if (thumbnailImages.includes(ext)) {
       return (
         <img 
           src={`/api/raw?path=${encodeURIComponent(item.path)}`} 
           className="file-icon image-thumbnail" 
           alt="" 
           loading="lazy" 
+          draggable={false}
           style={{
             width: '16px',
             height: '16px',
@@ -591,6 +594,7 @@ const Pane = ({
         />
       );
     }
+    if (genericImages.includes(ext)) return <Image className="file-icon image" size={16} />;
     if (code.includes(ext)) return <FileCode className="file-icon code" size={16} />;
     if (videos.includes(ext)) return <Video className="file-icon video" size={16} />;
     if (audio.includes(ext)) return <Music className="file-icon audio" size={16} />;
@@ -606,16 +610,18 @@ const Pane = ({
     }
     
     const ext = item.ext;
-    const images = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'];
+    const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
+    const genericImages = ['.svg', '.ico'];
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
 
-    if (images.includes(ext)) {
+    if (thumbnailImages.includes(ext)) {
       return (
         <img 
           src={`/api/raw?path=${encodeURIComponent(item.path)}`} 
           className="grid-item-thumbnail" 
           alt={item.name} 
           loading="lazy" 
+          draggable={false}
         />
       );
     }
@@ -628,6 +634,7 @@ const Pane = ({
             className="grid-item-thumbnail" 
             preload="metadata" 
             muted 
+            draggable={false}
           />
           <div style={{ position: 'absolute', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Video size={16} style={{ color: '#fff' }} />
@@ -640,6 +647,7 @@ const Pane = ({
     const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
     const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
 
+    if (genericImages.includes(ext)) return <Image className="file-icon image" size={iconSize} />;
     if (code.includes(ext)) return <FileCode className="file-icon code" size={iconSize} />;
     if (audio.includes(ext)) return <Music className="file-icon audio" size={iconSize} />;
     
