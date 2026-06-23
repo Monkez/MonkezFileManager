@@ -1,0 +1,45 @@
+{
+  "name": "monkez-file-manager-root",
+  "version": "1.0.0",
+  "description": "Root package for Monkez File Manager",
+  "main": "main.js",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "start": "node backend/server.js",
+    "server": "node backend/server.js",
+    "frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run frontend\"",
+    "dev:electron": "electron .",
+    "build:frontend": "npm run build --prefix frontend",
+    "package": "npm run build:frontend && npx pkg backend --out-path dist",
+    "package:electron": "npm run build:frontend && npx electron-packager . \"Monkez File Manager\" --platform=win32 --arch=x64 --out=dist-electron-release --icon=icon.ico --overwrite --prune=true --ignore=\"^/dist-electron-release|^/dist-electron|^/frontend/node_modules|^/backend/node_modules|^/frontend/src|^/dist|^/\\.git\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.0",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.monkez.filemanager",
+    "productName": "Monkez File Manager",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "frontend/public/icon.png"
+    },
+    "files": [
+      "main.js",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ],
+    "asar": true
+  }
+}
