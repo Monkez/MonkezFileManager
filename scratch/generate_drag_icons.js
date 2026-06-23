@@ -1,0 +1,11 @@
+const fs = require('fs');
+const path = require('path');
+
+const folderBase64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABy0lEQVRYR8WXv0vDQBTHv/eSGlCh4CIIddGpo4tK/wEHdRR0cxEBwV0c7Oig4K6i/gdB7Oig4C4iDg4iToKg4CIIdZEKoqXZyT1Dk5qkTZvUBOfy8t77fvd+73vvHiF+fIS4e15j3D+vP/bXf9cAhJgQYkJIDqEcyxDK/wXgL17B80X07vjI23b6x1xGv20mX0b35oO4P38ZfW/ey3+vN76BvB1v2+lbezn9Z/Rk9iPfyX/mYvDffx/05E4459w5jGzN1X4bHn7PqH8H75f28n82ZcBwMxzM2Z8L5nI4HczzE72WwORPOm3AwHM9E/B5+P+N2Gg72sRkORjP548/k9/A7j9t53M7jTETczuP+iN9p2NnHZuR2Hmdi53E6dx4HzkEeeDvg4eXpB16eDnjgdMDDy9MPHjgd8PDy9IMHTgc8vDz94IHTAQ8vTz944HTAw8vTDx44HfDw8vSDB04HPLw8/eCB0wEPL08/eOB0wMPL0w8e/h3A2c8DZwMevDz9wMvTz+nPA2cDHv4/AD/jdh4HzoFzkAfeDnh4efqBl6cD/wtAjmUImRBCcoTyYxlC+ZcAZM33Y9w5rzFuzGv8A8uM5Z9lP85/AAAAAElFTkSuQmCC';
+
+const fileBase64 = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABn0lEQVRYR8WXwUsUYRjGn/d9Z1ddNy/pooG3oFsHwUP/gE5Bh54iAoJ68NCpI0F0Kup+EHQ8dgo6eIg4eYg4CUKHIFyigqhpeXdn3hl3Zmd3d511x3HmeYZv3vd93+d5n+8bws2PcHPDz9C/oe+NffM5F0CIGSEmhOQQSrUMofxXAFrFGl4ronvLh9620z/mMrptM/kKurca4v70ZfS9eS//vd74BvJ2vG2nb+Xv/JfVn9GDeC//lY/Je/N93J8z4ZhzbzG2MV33ZXj8Oav+Ebxf3sf72ZwJx8FwPBNzJpqP+J2GnX1sRm7ncSZ2Hqdz53HgHOSBtwMeXp5+4OXpgAdOBzy8PP3ggdMBHy9PP3jgdMDDy9MPHjgd8PDy9IMHTgc8vDz94IHTAQ8vTz944HTAw8vTDx44HfDw8vSDB04HPLw8/eCB0wEPL08/ePh3AGc/D5wNePDy9AMvTz+nPw+cDXj4/wD8jNt5HDgHekBPhvN8GUL5p1oZ/qnmBzKq5V9mXW6VAAAAAElFTkSuQmCC';
+
+fs.writeFileSync(path.join(__dirname, '../drag_folder.png'), Buffer.from(folderBase64, 'base64'));
+fs.writeFileSync(path.join(__dirname, '../drag_file.png'), Buffer.from(fileBase64, 'base64'));
+
+console.log('Drag icons generated successfully.');

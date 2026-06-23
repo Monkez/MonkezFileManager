@@ -18,6 +18,12 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
   - Tự động đổi màu font chữ và icon sang **Màu Đỏ** kèm làm mờ (opacity 70%) khi thực hiện lệnh Cut (`Ctrl + X`).
 
 ### Sửa Lỗi và Cải Tiến
+- **Cải tiến kéo thả và chỉ thị kéo thả (Drag & Drop Icons)**:
+  - Thiết kế lại các biểu tượng kéo thả tệp và thư mục ở kích thước 64x64 pixel chất lượng cao, nét hơn trên màn hình DPI cao.
+  - Sửa lỗi khi kéo tệp xuống thanh taskbar của Windows bị hiển thị icon gốc của phần mềm thay vì biểu tượng tệp/folder bằng cách truyền đường dẫn tuyệt đối trực tiếp thay vì `NativeImage`.
+  - Thiết kế giao diện kéo thả nội bộ (HTML5 Drag Ghost) với nền tối Slate-900 bo góc, viền xanh dương Sky-400 nổi bật, hiển thị rõ ràng tên tệp kéo trên mọi loại nền sáng/tối.
+- **Icon tệp ảnh ở dạng danh sách chi tiết (Detail List View)**:
+  - Tự động hiển thị hình ảnh thu nhỏ thực tế (thumbnail) của tệp ảnh ngay tại cột biểu tượng ở dạng xem chi tiết thay cho icon hình ảnh màu hồng mặc định.
 - **Sửa lỗi tiêu điểm phím tắt (Keyboard Focus)**: Tự động đưa tiêu điểm về Pane khi nhấp chọn tệp tin hoặc nhấp vào vùng trống, giúp ứng dụng nhận diện phím tắt Copy/Paste/Cut và phím điều hướng một cách tin cậy hơn.
 - **Bổ sung phím tắt Ctrl + A**: Cho phép chọn nhanh toàn bộ tệp tin trong thư mục hiện tại.
 - **Cơ chế Refresh đồng bộ**: Thay đổi sự kiện refresh cục bộ sang phát sóng sự kiện toàn cục `refresh-all-panes`. Khi người dùng thực hiện Paste hoặc thay đổi tệp, toàn bộ các Pane đang mở sẽ đồng loạt cập nhật dữ liệu để đồng bộ hóa giao diện.

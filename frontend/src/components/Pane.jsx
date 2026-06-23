@@ -575,7 +575,22 @@ const Pane = ({
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
     const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
 
-    if (images.includes(ext)) return <Image className="file-icon image" size={16} />;
+    if (images.includes(ext)) {
+      return (
+        <img 
+          src={`/api/raw?path=${encodeURIComponent(item.path)}`} 
+          className="file-icon image-thumbnail" 
+          alt="" 
+          loading="lazy" 
+          style={{
+            width: '16px',
+            height: '16px',
+            objectFit: 'cover',
+            borderRadius: '2px'
+          }}
+        />
+      );
+    }
     if (code.includes(ext)) return <FileCode className="file-icon code" size={16} />;
     if (videos.includes(ext)) return <Video className="file-icon video" size={16} />;
     if (audio.includes(ext)) return <Music className="file-icon audio" size={16} />;
@@ -848,11 +863,15 @@ const Pane = ({
       ghost.style.display = 'flex';
       ghost.style.alignItems = 'center';
       ghost.style.gap = '8px';
-      ghost.style.padding = '4px 8px';
-      ghost.style.background = 'transparent';
-      ghost.style.color = '#fff';
+      ghost.style.padding = '6px 12px';
+      ghost.style.background = '#0f172a'; // Solid slate-900 for high-contrast visibility
+      ghost.style.color = '#ffffff'; // White text
+      ghost.style.border = '1px solid #38bdf8'; // Sky blue border highlight
+      ghost.style.borderRadius = '6px';
+      ghost.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5)';
       ghost.style.fontFamily = 'sans-serif';
       ghost.style.fontSize = '12px';
+      ghost.style.fontWeight = '500';
       ghost.style.whiteSpace = 'nowrap';
       ghost.style.pointerEvents = 'none';
       ghost.style.zIndex = '9999';
@@ -871,11 +890,10 @@ const Pane = ({
       } else {
         textSpan.textContent = `${item.name} (+${pathsToDrag.length - 1} tệp)`;
       }
-      textSpan.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
       ghost.appendChild(textSpan);
 
       document.body.appendChild(ghost);
-      e.dataTransfer.setDragImage(ghost, 16, 16);
+      e.dataTransfer.setDragImage(ghost, 20, 20);
 
       setTimeout(() => {
         if (document.body.contains(ghost)) {
