@@ -1340,3 +1340,128 @@ body {
     transform: translateX(250%);
   }
 }
+
+/* File Grid View */
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--grid-item-width, 120px), 1fr));
+  gap: 12px;
+  padding: 12px;
+  align-content: start;
+}
+
+/* View Mode Sizes */
+.file-grid.grid-small {
+  --grid-item-width: 80px;
+  --grid-thumb-height: 55px;
+}
+.file-grid.grid-medium {
+  --grid-item-width: 130px;
+  --grid-thumb-height: 95px;
+}
+.file-grid.grid-large {
+  --grid-item-width: 200px;
+  --grid-thumb-height: 145px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.grid-item:hover {
+  background: var(--pane-row-hover);
+}
+
+.grid-item.selected {
+  background: var(--pane-row-selected);
+  border-color: var(--accent-color);
+}
+
+.grid-item.active-selection {
+  background: var(--pane-row-active);
+  border-color: var(--accent-color);
+}
+
+.grid-item-thumbnail-wrapper {
+  width: 100%;
+  height: var(--grid-thumb-height, 95px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+}
+
+.grid-item-thumbnail {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.grid-item-name {
+  font-size: 11.5px;
+  color: var(--text-main);
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+  width: 100%;
+  padding: 0 2px;
+}
+
+/* Copy/Cut selection color highlighting */
+.copied-highlight td,
+.copied-highlight .sidebar-item-text,
+.copied-highlight .file-icon,
+.grid-item.copied-highlight .grid-item-name,
+.grid-item.copied-highlight .file-icon {
+  color: #3b82f6 !important; /* blue */
+}
+
+.cut-highlight td,
+.cut-highlight .sidebar-item-text,
+.cut-highlight .file-icon,
+.grid-item.cut-highlight .grid-item-name,
+.grid-item.cut-highlight .file-icon {
+  color: #ef4444 !important; /* red */
+  opacity: 0.7; /* slightly faded to represent cut */
+}
+
+.theme-light .copied-highlight td,
+.theme-light .copied-highlight .sidebar-item-text,
+.theme-light .copied-highlight .file-icon,
+.theme-light .grid-item.copied-highlight .grid-item-name,
+.theme-light .grid-item.copied-highlight .file-icon {
+  color: #2563eb !important; /* darker blue for light theme readability */
+}
+
+.theme-light .cut-highlight td,
+.theme-light .cut-highlight .sidebar-item-text,
+.theme-light .cut-highlight .file-icon,
+.theme-light .grid-item.cut-highlight .grid-item-name,
+.theme-light .grid-item.cut-highlight .file-icon {
+  color: #dc2626 !important; /* darker red for light theme readability */
+  opacity: 0.7;
+}
+
+/* View Mode dropdown UI active indicators */
+.context-menu-item.active {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  font-weight: 600;
+}

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 // Start Express backend directly in the main process
@@ -15,7 +15,8 @@ function createWindow() {
     autoHideMenuBar: true, // Hide default file/edit menu bar for a clean native app look
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
@@ -44,5 +45,21 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Native file drag-out support
+ipcMain.on('ondragstart', (event, files) => {
+  const iconPath = path.join(__dirname, 'icon.png');
+  if (Array.isArray(files)) {
+    event.sender.startDrag({
+      files: files,
+      icon: iconPath
+    });
+  } else {
+    event.sender.startDrag({
+      file: files,
+      icon: iconPath
+    });
   }
 });

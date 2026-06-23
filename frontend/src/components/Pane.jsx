@@ -2,7 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
-  X, AlertTriangle, ChevronRight, MoreVertical
+  X, AlertTriangle, ChevronRight, MoreVertical,
+  List, Grid
 } from 'lucide-react';
 
 const Pane = ({
@@ -38,6 +39,18 @@ const Pane = ({
     }
   ]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
+
+  // View Mode Settings
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem(`monkez_viewmode_${paneId}`);
+    return saved || 'text';
+  });
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem(`monkez_viewmode_${paneId}`, mode);
+  };
 
   // Directory listing data
   const [filesData, setFilesData] = useState({
@@ -128,10 +141,13 @@ const Pane = ({
       if (contextMenu.isOpen) {
         setContextMenu(prev => ({ ...prev, isOpen: false }));
       }
+      if (viewMenuOpen) {
+        setViewMenuOpen(false);
+      }
     };
     window.addEventListener('click', handleCloseMenu);
     return () => window.removeEventListener('click', handleCloseMenu);
-  }, [contextMenu.isOpen]);
+  }, [contextMenu.isOpen, viewMenuOpen]);
 
   useLayoutEffect(() => {
     if (contextMenu.isOpen && contextMenuRef.current) {
@@ -277,7 +293,7 @@ const Pane = ({
           // Clear clipboard on cut
           setClipboard({ paths: [], type: 'copy' });
         }
-        fetchFiles(filesData.currentPath);
+        window.dispatchEvent(new CustomEvent('refresh-all-panes'));
       } catch (err) {
         alert(`Error pasting files: ${err.message}`);
       } finally {
@@ -567,6 +583,54 @@ const Pane = ({
     return <File className="file-icon file" size={16} />;
   };
 
+  // Grid Item Media/Icon resolver
+  const getGridItemMedia = (item, size) => {
+    if (item.isDirectory) {
+      const folderSize = size === 'small' ? 32 : size === 'medium' ? 48 : 64;
+      return <Folder className="file-icon folder" size={folderSize} />;
+    }
+    
+    const ext = item.ext;
+    const images = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico'];
+    const videos = ['.mp4', '.webm', '.avi', '.mkv'];
+
+    if (images.includes(ext)) {
+      return (
+        <img 
+          src={`/api/raw?path=${encodeURIComponent(item.path)}`} 
+          className="grid-item-thumbnail" 
+          alt={item.name} 
+          loading="lazy" 
+        />
+      );
+    }
+    
+    if (videos.includes(ext)) {
+      return (
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <video 
+            src={`/api/raw?path=${encodeURIComponent(item.path)}#t=0.1`} 
+            className="grid-item-thumbnail" 
+            preload="metadata" 
+            muted 
+          />
+          <div style={{ position: 'absolute', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Video size={16} style={{ color: '#fff' }} />
+          </div>
+        </div>
+      );
+    }
+    
+    const iconSize = size === 'small' ? 32 : size === 'medium' ? 48 : 64;
+    const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
+    const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
+
+    if (code.includes(ext)) return <FileCode className="file-icon code" size={iconSize} />;
+    if (audio.includes(ext)) return <Music className="file-icon audio" size={iconSize} />;
+    
+    return <File className="file-icon file" size={iconSize} />;
+  };
+
   // Size formatter
   const formatSize = (bytes) => {
     if (bytes === 0) return '0 B';
@@ -579,6 +643,9 @@ const Pane = ({
   // Click Handlers
   const handleItemClick = (item, index, e) => {
     onActivate(); // Set active pane
+    if (paneRef.current) {
+      paneRef.current.focus();
+    }
 
     if (e.ctrlKey) {
       // Toggle selection
@@ -683,6 +750,15 @@ const Pane = ({
       return;
     }
 
+    // Select all shortcut (Ctrl + A)
+    if (e.ctrlKey && e.key === 'a') {
+      e.preventDefault();
+      const allNames = new Set(sorted.map(item => item.name));
+      setSelectedNames(allNames);
+      setFocusedIndex(0);
+      return;
+    }
+
     if (sorted.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -745,10 +821,9 @@ const Pane = ({
 
   // Drag and drop handlers
   const handleDragStart = (e, item) => {
-    // If not selected, select it first
+    // Determine path(s) to drag
     let pathsToDrag = [];
     if (!selectedNames.has(item.name)) {
-      setSelectedNames(new Set([item.name]));
       pathsToDrag = [item.path];
     } else {
       pathsToDrag = Array.from(selectedNames).map(name => {
@@ -757,6 +832,14 @@ const Pane = ({
       }).filter(Boolean);
     }
 
+    // Support native Electron drag-out to external OS apps
+    if (window.electron && window.electron.startDrag) {
+      e.preventDefault();
+      window.electron.startDrag(pathsToDrag);
+      return;
+    }
+
+    // Fallback: internal HTML5 drag-and-drop between panes
     e.dataTransfer.setData('application/json', JSON.stringify({
       sourcePaths: pathsToDrag,
       sourcePaneId: paneId
@@ -773,9 +856,38 @@ const Pane = ({
     e.currentTarget.classList.remove('drag-over');
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
+
+    // Support native OS / third-party drop-in file imports
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      const externalPaths = files.map(f => f.path).filter(Boolean);
+      
+      if (externalPaths.length > 0) {
+        try {
+          setLoading(true);
+          const res = await fetch('/api/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sources: externalPaths, destinationDir: filesData.currentPath })
+          });
+          const resData = await res.json();
+          if (!res.ok) {
+            throw new Error(resData.error || 'Failed to copy external files');
+          }
+          window.dispatchEvent(new CustomEvent('refresh-all-panes'));
+        } catch (err) {
+          alert(`Lỗi kéo thả từ ứng dụng ngoài: ${err.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+      return;
+    }
+
+    // Fallback: internal HTML5 drop-in between panes
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
       if (data && data.sourcePaths && data.sourcePaneId !== paneId) {
@@ -826,13 +938,22 @@ const Pane = ({
   // External actions exposed (like refresh, path trigger)
   useEffect(() => {
     const handleRefresh = (e) => {
-      if (isActive && e.detail && e.detail.action === 'refresh') {
+      if (e.detail && e.detail.action === 'refresh') {
         fetchFiles(filesData.currentPath);
       }
     };
     window.addEventListener(`refresh-pane-${paneId}`, handleRefresh);
     return () => window.removeEventListener(`refresh-pane-${paneId}`, handleRefresh);
-  }, [isActive, filesData.currentPath]);
+  }, [paneId, filesData.currentPath]);
+
+  // Listen to global refresh event for all panes
+  useEffect(() => {
+    const handleRefreshAll = () => {
+      fetchFiles(filesData.currentPath);
+    };
+    window.addEventListener('refresh-all-panes', handleRefreshAll);
+    return () => window.removeEventListener('refresh-all-panes', handleRefreshAll);
+  }, [filesData.currentPath]);
 
   // Public navigate interface
   window[`navigatePane_${paneId}`] = (newPath) => {
@@ -946,6 +1067,32 @@ const Pane = ({
           <MoreVertical size={16} />
         </button>
 
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            className={`nav-history-btn ${viewMode !== 'text' ? 'active' : ''}`}
+            title="Thay đổi chế độ xem (View Mode)"
+            onClick={(e) => { e.stopPropagation(); setViewMenuOpen(!viewMenuOpen); }}
+          >
+            {viewMode === 'text' ? <List size={16} /> : <Grid size={16} />}
+          </button>
+          {viewMenuOpen && (
+            <div className="context-menu glass" style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 100 }}>
+              <div className={`context-menu-item ${viewMode === 'text' ? 'active' : ''}`} onClick={() => handleViewModeChange('text')}>
+                <List size={14} style={{ marginRight: 8 }} /> Chi tiết (Chỉ chữ)
+              </div>
+              <div className={`context-menu-item ${viewMode === 'grid-small' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-small')}>
+                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh nhỏ
+              </div>
+              <div className={`context-menu-item ${viewMode === 'grid-medium' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-medium')}>
+                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh vừa
+              </div>
+              <div className={`context-menu-item ${viewMode === 'grid-large' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-large')}>
+                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh lớn
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="path-input-container" onClick={() => { if (!isEditingPath) setIsEditingPath(true); }}>
           {isEditingPath ? (
             <input
@@ -1046,7 +1193,7 @@ const Pane = ({
               Empty Folder
             </div>
           )
-        ) : (
+        ) : viewMode === 'text' ? (
           <table className="file-table" style={{ opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s ease' }}>
             <thead>
               <tr>
@@ -1078,11 +1225,13 @@ const Pane = ({
               {sortedItems.map((item, idx) => {
                 const isSelected = selectedNames.has(item.name);
                 const isFocused = idx === focusedIndex;
+                const isCopied = clipboard.type === 'copy' && clipboard.paths.includes(item.path);
+                const isCut = clipboard.type === 'cut' && clipboard.paths.includes(item.path);
                 
                 return (
                   <tr
                     key={item.name}
-                    className={`${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''}`}
+                    className={`${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
                     onClick={(e) => handleItemClick(item, idx, e)}
                     onDoubleClick={() => handleItemDoubleClick(item)}
                     draggable
@@ -1107,6 +1256,50 @@ const Pane = ({
               })}
             </tbody>
           </table>
+        ) : (
+          <div 
+            className={`file-grid ${viewMode}`}
+            style={{ opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s ease' }}
+          >
+            {/* Parent folder shortcut for Grid view */}
+            {filesData.parentPath && !filterQuery && (
+              <div 
+                className="grid-item parent-folder-grid" 
+                onDoubleClick={goUp}
+                style={{ color: 'var(--accent-color)' }}
+              >
+                <div className="grid-item-thumbnail-wrapper">
+                  <Folder className="file-icon folder" size={viewMode === 'grid-small' ? 32 : viewMode === 'grid-medium' ? 48 : 64} style={{ color: 'var(--accent-color)' }} />
+                </div>
+                <span className="grid-item-name">.. (Parent Folder)</span>
+              </div>
+            )}
+
+            {sortedItems.map((item, idx) => {
+              const isSelected = selectedNames.has(item.name);
+              const isFocused = idx === focusedIndex;
+              const isCopied = clipboard.type === 'copy' && clipboard.paths.includes(item.path);
+              const isCut = clipboard.type === 'cut' && clipboard.paths.includes(item.path);
+              const sizeLabel = viewMode === 'grid-small' ? 'small' : viewMode === 'grid-medium' ? 'medium' : 'large';
+
+              return (
+                <div
+                  key={item.name}
+                  className={`grid-item ${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
+                  onClick={(e) => handleItemClick(item, idx, e)}
+                  onDoubleClick={() => handleItemDoubleClick(item)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, item)}
+                  onContextMenu={(e) => handleRowContextMenu(item, idx, e)}
+                >
+                  <div className="grid-item-thumbnail-wrapper">
+                    {getGridItemMedia(item, sizeLabel)}
+                  </div>
+                  <span className="grid-item-name" title={item.name}>{item.name}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
