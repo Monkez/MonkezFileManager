@@ -214,6 +214,8 @@ body {
   margin-top: 6px;
   min-width: 280px;
   max-width: 400px;
+  max-height: 450px;
+  overflow-y: auto;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;

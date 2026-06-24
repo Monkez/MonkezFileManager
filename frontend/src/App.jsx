@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, Sidebar as SidebarIcon,
   Copy, ArrowRightLeft,
   RectangleHorizontal, Columns2, Columns3, Settings,
-  ChevronDown, X
+  ChevronDown, X, Folder, Sliders
 } from 'lucide-react';
 
 const App = () => {
@@ -47,6 +47,8 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showBookmarksDropdown, setShowBookmarksDropdown] = useState(false);
+  const [showSystemPathsDropdown, setShowSystemPathsDropdown] = useState(false);
+  const [showSystemToolsDropdown, setShowSystemToolsDropdown] = useState(false);
   const [systemPaths, setSystemPaths] = useState(null);
 
   const handleThemeChange = (newTheme) => {
@@ -147,15 +149,17 @@ const App = () => {
     loadSystemPaths();
   }, []);
 
-  // Close bookmarks dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    if (!showBookmarksDropdown) return;
+    if (!showBookmarksDropdown && !showSystemPathsDropdown && !showSystemToolsDropdown) return;
     const handleClose = () => {
       setShowBookmarksDropdown(false);
+      setShowSystemPathsDropdown(false);
+      setShowSystemToolsDropdown(false);
     };
     window.addEventListener('click', handleClose);
     return () => window.removeEventListener('click', handleClose);
-  }, [showBookmarksDropdown]);
+  }, [showBookmarksDropdown, showSystemPathsDropdown, showSystemToolsDropdown]);
 
   // Listen for bookmark changes from Pane context menu actions
   useEffect(() => {
@@ -493,11 +497,16 @@ const App = () => {
             <span>Bookmark</span>
           </button>
           
+          {/* 1. Bookmark Cá Nhân Dropdown */}
           <div className="bookmarks-dropdown-container" onClick={(e) => e.stopPropagation()}>
             <button 
               className={`toolbar-btn ${showBookmarksDropdown ? 'active' : ''}`} 
-              onClick={() => setShowBookmarksDropdown(!showBookmarksDropdown)} 
-              title="Danh sách bookmark đã lưu (Saved Bookmarks)"
+              onClick={() => {
+                setShowBookmarksDropdown(!showBookmarksDropdown);
+                setShowSystemPathsDropdown(false);
+                setShowSystemToolsDropdown(false);
+              }} 
+              title="Danh sách bookmark cá nhân"
             >
               <Star size={15} style={{ fill: '#fbbf24', color: '#fbbf24' }} />
               <span>Bookmarks</span>
@@ -505,7 +514,6 @@ const App = () => {
             </button>
             {showBookmarksDropdown && (
               <div className="bookmarks-dropdown-menu">
-                {/* 1. BOOKMARKS CÁ NHÂN */}
                 <div className="bookmarks-dropdown-header">Bookmark Cá Nhân</div>
                 {bookmarks.length === 0 ? (
                   <div className="bookmarks-dropdown-item disabled">Chưa có bookmark nào</div>
@@ -536,64 +544,192 @@ const App = () => {
                     </div>
                   ))
                 )}
+              </div>
+            )}
+          </div>
 
-                {/* 2. THƯ MỤC HỆ THỐNG */}
+          {/* 2. Thư Mục Hệ Thống Dropdown */}
+          <div className="bookmarks-dropdown-container" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className={`toolbar-btn ${showSystemPathsDropdown ? 'active' : ''}`} 
+              onClick={() => {
+                setShowSystemPathsDropdown(!showSystemPathsDropdown);
+                setShowBookmarksDropdown(false);
+                setShowSystemToolsDropdown(false);
+              }} 
+              title="Danh sách thư mục hệ thống Windows"
+            >
+              <Folder size={15} />
+              <span>Thư mục</span>
+              <ChevronDown size={12} style={{ marginLeft: '4px' }} />
+            </button>
+            {showSystemPathsDropdown && (
+              <div className="bookmarks-dropdown-menu">
                 <div className="bookmarks-dropdown-header">Thư Mục Hệ Thống</div>
                 {systemPaths ? (
                   <>
-                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.desktop); setShowBookmarksDropdown(false); }}>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.desktop); setShowSystemPathsDropdown(false); }}>
                       <div className="bookmark-info">
                         <span className="bookmark-name">Desktop (Màn hình chính)</span>
                         <span className="bookmark-path">{systemPaths.desktop}</span>
                       </div>
                     </div>
-                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.downloads); setShowBookmarksDropdown(false); }}>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.downloads); setShowSystemPathsDropdown(false); }}>
                       <div className="bookmark-info">
                         <span className="bookmark-name">Downloads (Tải về)</span>
                         <span className="bookmark-path">{systemPaths.downloads}</span>
                       </div>
                     </div>
-                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.documents); setShowBookmarksDropdown(false); }}>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.documents); setShowSystemPathsDropdown(false); }}>
                       <div className="bookmark-info">
                         <span className="bookmark-name">Documents (Tài liệu)</span>
                         <span className="bookmark-path">{systemPaths.documents}</span>
                       </div>
                     </div>
-                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFiles); setShowBookmarksDropdown(false); }}>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.pictures); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Pictures (Hình ảnh)</span>
+                        <span className="bookmark-path">{systemPaths.pictures}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.videos); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Videos (Video)</span>
+                        <span className="bookmark-path">{systemPaths.videos}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.music); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Music (Nhạc)</span>
+                        <span className="bookmark-path">{systemPaths.music}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.userProfile); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">User Profile (Thư mục cá nhân)</span>
+                        <span className="bookmark-path">{systemPaths.userProfile}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFiles); setShowSystemPathsDropdown(false); }}>
                       <div className="bookmark-info">
                         <span className="bookmark-name">Program Files</span>
                         <span className="bookmark-path">{systemPaths.programFiles}</span>
                       </div>
                     </div>
-                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFilesX86); setShowBookmarksDropdown(false); }}>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFilesX86); setShowSystemPathsDropdown(false); }}>
                       <div className="bookmark-info">
                         <span className="bookmark-name">Program Files (x86)</span>
                         <span className="bookmark-path">{systemPaths.programFilesX86}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.windowsDir); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Windows (Thư mục cài đặt OS)</span>
+                        <span className="bookmark-path">{systemPaths.windowsDir}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.appData); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">AppData (Roaming)</span>
+                        <span className="bookmark-path">{systemPaths.appData}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.tempDir); setShowSystemPathsDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Temp (Thư mục tạm)</span>
+                        <span className="bookmark-path">{systemPaths.tempDir}</span>
                       </div>
                     </div>
                   </>
                 ) : (
                   <div className="bookmarks-dropdown-item disabled">Đang tải thư mục hệ thống...</div>
                 )}
+              </div>
+            )}
+          </div>
 
-                {/* 3. CÔNG CỤ HỆ THỐNG */}
+          {/* 3. Công Cụ Hệ Thống Dropdown */}
+          <div className="bookmarks-dropdown-container" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className={`toolbar-btn ${showSystemToolsDropdown ? 'active' : ''}`} 
+              onClick={() => {
+                setShowSystemToolsDropdown(!showSystemToolsDropdown);
+                setShowBookmarksDropdown(false);
+                setShowSystemPathsDropdown(false);
+              }} 
+              title="Danh sách công cụ quản trị Windows"
+            >
+              <Sliders size={15} />
+              <span>Công cụ</span>
+              <ChevronDown size={12} style={{ marginLeft: '4px' }} />
+            </button>
+            {showSystemToolsDropdown && (
+              <div className="bookmarks-dropdown-menu">
                 <div className="bookmarks-dropdown-header">Công Cụ Hệ Thống</div>
-                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('control-panel'); setShowBookmarksDropdown(false); }}>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('control-panel'); setShowSystemToolsDropdown(false); }}>
                   <div className="bookmark-info">
                     <span className="bookmark-name">Control Panel</span>
                     <span className="bookmark-path">Bảng điều khiển truyền thống</span>
                   </div>
                 </div>
-                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('settings'); setShowBookmarksDropdown(false); }}>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('settings'); setShowSystemToolsDropdown(false); }}>
                   <div className="bookmark-info">
                     <span className="bookmark-name">Windows Settings</span>
-                    <span className="bookmark-path">Ứng dụng cài đặt hệ thống</span>
+                    <span className="bookmark-path">Cấu hình cài đặt hệ thống</span>
                   </div>
                 </div>
-                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('add-remove-programs'); setShowBookmarksDropdown(false); }}>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('add-remove-programs'); setShowSystemToolsDropdown(false); }}>
                   <div className="bookmark-info">
                     <span className="bookmark-name">Add or Remove Programs</span>
                     <span className="bookmark-path">Quản lý và gỡ cài đặt phần mềm</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('task-manager'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Task Manager</span>
+                    <span className="bookmark-path">Quản lý các tác vụ đang chạy</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('disk-management'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Disk Management</span>
+                    <span className="bookmark-path">Quản lý phân vùng ổ đĩa</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('device-manager'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Device Manager</span>
+                    <span className="bookmark-path">Quản lý driver phần cứng</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('registry-editor'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Registry Editor</span>
+                    <span className="bookmark-path">Chỉnh sửa cơ sở dữ liệu registry</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('services'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Services</span>
+                    <span className="bookmark-path">Quản lý dịch vụ chạy ngầm</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('resource-monitor'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Resource Monitor</span>
+                    <span className="bookmark-path">Theo dõi CPU, Memory, Disk, Network</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('command-prompt'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Command Prompt (CMD)</span>
+                    <span className="bookmark-path">Khởi chạy cmd.exe</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('powershell'); setShowSystemToolsDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">PowerShell</span>
+                    <span className="bookmark-path">Khởi chạy powershell.exe</span>
                   </div>
                 </div>
               </div>

@@ -5,9 +5,11 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 ## [1.2.0] - 24-06-2026
 
 ### Thêm Mới
-- **Bookmarks Dropdown & Quick Access ở thanh công cụ chính**: Nâng cấp Bookmarks dropdown thành trung tâm truy cập nhanh nâng cao (Advanced Quick Access Center). Ngoài các bookmark của người dùng, bổ sung:
-  - **Thư mục hệ thống**: Desktop, Downloads, Documents, Program Files, Program Files (x86).
-  - **Công cụ hệ thống**: Control Panel, Windows Settings (Cài đặt), Add or Remove Programs (Thêm hoặc xóa chương trình).
+- **Tách 3 Menu Quick Access và Sửa lỗi khởi chạy Control Panel**:
+  - Tách dropdown Bookmarks cũ thành **3 menu độc lập** trên thanh công cụ: Bookmarks cá nhân (icon Ngôi sao), Thư mục hệ thống (icon Thư mục), và Công cụ quản trị (icon Tiện ích).
+  - Bổ sung nhiều thư mục hệ thống Windows: Desktop, Downloads, Documents, Pictures, Videos, Music, User Profile, Program Files, Program Files (x86), Windows (C:\Windows), AppData, và Temp.
+  - Bổ sung nhiều công cụ tiện ích quản trị: Control Panel, Windows Settings, Add or Remove Programs, Task Manager, Disk Management, Device Manager, Registry Editor, Services, Resource Monitor, CMD, và PowerShell.
+  - Sửa triệt để lỗi mở Control Panel hiển thị thông báo cảnh báo lỗi bằng cách sử dụng luồng chạy độc lập `start` và phản hồi kết quả tức thì từ backend.
 - **Khôi phục thư mục phiên làm việc trước (Restore Last Folder)**: Bổ sung nút khôi phục lịch sử (icon đồng hồ) ở thanh điều hướng mỗi Pane. Khi ứng dụng khởi động lại hoặc máy tính reboot, click nút này sẽ mở lại thư mục hoạt động cuối cùng của Pane đó ở phiên làm việc trước. Nút tự động ẩn/disable khi Pane đã ở đúng thư mục đó.
 
 ### Cải Tiến

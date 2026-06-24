@@ -72,42 +72,85 @@ app.get('/api/system-paths', (req, res) => {
   const desktop = path.join(userProfile, 'Desktop');
   const downloads = path.join(userProfile, 'Downloads');
   const documents = path.join(userProfile, 'Documents');
+  const pictures = path.join(userProfile, 'Pictures');
+  const videos = path.join(userProfile, 'Videos');
+  const music = path.join(userProfile, 'Music');
   const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
   const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+  const windowsDir = process.env.SystemRoot || 'C:\\Windows';
+  const appData = process.env.APPDATA || path.join(userProfile, 'AppData', 'Roaming');
+  const tempDir = process.env.TEMP || path.join(userProfile, 'AppData', 'Local', 'Temp');
 
   res.json({
+    userProfile,
     desktop,
     downloads,
     documents,
+    pictures,
+    videos,
+    music,
     programFiles,
-    programFilesX86
+    programFilesX86,
+    windowsDir,
+    appData,
+    tempDir
   });
 });
 
 // Launch System Utility Tools API
 app.post('/api/launch-tool', (req, res) => {
   const { tool } = req.body;
-  let cmd = '';
+  let target = '';
 
-  if (tool === 'control-panel') {
-    cmd = 'control';
-  } else if (tool === 'settings') {
-    cmd = 'start ms-settings:';
-  } else if (tool === 'add-remove-programs') {
-    cmd = 'start ms-settings:appsfeatures';
+  switch (tool) {
+    case 'control-panel':
+      target = 'control';
+      break;
+    case 'settings':
+      target = 'ms-settings:';
+      break;
+    case 'add-remove-programs':
+      target = 'ms-settings:appsfeatures';
+      break;
+    case 'task-manager':
+      target = 'taskmgr';
+      break;
+    case 'disk-management':
+      target = 'diskmgmt.msc';
+      break;
+    case 'device-manager':
+      target = 'devmgmt.msc';
+      break;
+    case 'registry-editor':
+      target = 'regedit';
+      break;
+    case 'command-prompt':
+      target = 'cmd';
+      break;
+    case 'powershell':
+      target = 'powershell';
+      break;
+    case 'services':
+      target = 'services.msc';
+      break;
+    case 'resource-monitor':
+      target = 'resmon';
+      break;
+    default:
+      return res.status(400).json({ error: 'Unknown system utility tool' });
   }
 
-  if (!cmd) {
-    return res.status(400).json({ error: 'Unknown system utility tool' });
-  }
+  // Prepend 'start ' to launch GUI as a detached process and exit cmd.exe immediately
+  const command = `start ${target}`;
 
-  exec(cmd, (error) => {
+  exec(command, (error) => {
     if (error) {
       console.error(`Failed to launch tool ${tool}:`, error);
-      return res.status(500).json({ error: `Failed to launch: ${error.message}` });
     }
-    res.json({ success: true });
   });
+
+  // Return success immediately to the client
+  res.json({ success: true });
 });
 
 // 1. Get Drives API

@@ -49,10 +49,10 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 8. Quản Lý Drive và Bookmarks
 - Tự động hiển thị các ổ đĩa cục bộ của Windows (C:, D:, E:, v.v.) kèm thanh dung lượng sử dụng trên thanh Sidebar bên trái.
 - Cho phép người dùng đánh dấu (Bookmark) các thư mục quan trọng để truy cập nhanh từ thanh Sidebar hoặc trực tiếp qua **Bookmarks Dropdown** trên thanh công cụ phía trên (Top Toolbar), giúp chuyển nhanh thư mục hoạt động mà không cần mở Sidebar.
-- Menu **Bookmarks Dropdown** được thiết kế lại thành **Advanced Quick Access Center** gồm 3 phân khu chuyên biệt:
-  - **Bookmark Cá Nhân**: Danh sách các bookmark người dùng lưu tùy chỉnh (hỗ trợ xóa nhanh bằng dấu `x`).
-  - **Thư Mục Hệ Thống**: Truy cập nhanh lập tức các thư mục Windows: Desktop, Downloads, Documents, Program Files, và Program Files (x86).
-  - **Công Cụ Hệ Thống**: Khởi chạy trực tiếp các công cụ quản trị hệ điều hành từ xa: Control Panel, Windows Settings và Add or Remove Programs.
+- Tách biệt thành **3 Menu Dropdown riêng biệt** trên thanh công cụ (Top Toolbar):
+  - **Bookmarks** (Icon Ngôi sao): Danh sách các bookmark người dùng lưu tùy chỉnh (hỗ trợ xóa nhanh bằng dấu `x`).
+  - **Thư mục** (Icon Thư mục): Truy cập nhanh lập tức các thư mục Windows phổ biến: Desktop, Downloads, Documents, Pictures, Videos, Music, User Profile, Program Files, Program Files (x86), Windows (C:\Windows), AppData (Roaming), và Temp.
+  - **Công cụ** (Icon Tiện ích): Khởi chạy trực tiếp các công cụ quản trị hệ điều hành dưới nền bằng cách sử dụng luồng chạy độc lập (không gây lỗi GUI): Control Panel, Windows Settings, Add or Remove Programs, Task Manager, Disk Management, Device Manager, Registry Editor, Services, Resource Monitor, Command Prompt (CMD), và PowerShell.
 - Nút **ổ đĩa nhanh (Drive Toolbar)** ở đầu mỗi Pane hiển thị đầy đủ thông tin: nhãn ổ đĩa, biểu tượng, dung lượng trống và tổng dung lượng (ví dụ: `Local Disk (C:) - 45.2 GB trống / 120 GB`).
 
 ## 9. Khôi Phục Lịch Sử Thư Mục (Restore Session)
