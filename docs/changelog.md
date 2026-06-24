@@ -2,6 +2,11 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.2.2] - 24-06-2026
+
+### Sửa Lỗi
+- **Sửa lỗi khởi động màn hình trống do EADDRINUSE**: Thêm khóa phiên bản duy nhất (Single Instance Lock) vào tiến trình chính của ứng dụng. Điều này ngăn chặn việc mở nhiều ứng dụng đồng thời gây xung đột cổng kết nối `3001` của backend. Giờ đây, mở lần hai sẽ tự động gọi cửa sổ ứng dụng đang chạy hiện tại lên trên cùng.
+
 ## [1.2.1] - 24-06-2026
 
 ### Thêm Mới

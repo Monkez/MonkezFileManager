@@ -37,10 +37,24 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
-  // Give the Express server a tiny moment (500ms) to start listening
-  setTimeout(createWindow, 500);
-});
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    // Give the Express server a tiny moment (500ms) to start listening
+    setTimeout(createWindow, 500);
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
