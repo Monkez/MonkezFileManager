@@ -196,11 +196,22 @@ const Pane = ({
     });
   };
 
+  const isEmptyAreaTarget = (target) => {
+    return target.classList.contains('pane-content-area')
+      || target.tagName === 'TABLE'
+      || target.tagName === 'TBODY'
+      || target.classList.contains('file-grid');
+  };
+
   const handleAreaContextMenu = (e) => {
     // Only context menu empty areas
-    if (e.target.classList.contains('pane-content-area') || e.target.tagName === 'TABLE' || e.target.tagName === 'TBODY') {
+    if (isEmptyAreaTarget(e.target)) {
       e.preventDefault();
       onActivate();
+
+      // Deselect all items (like Windows Explorer)
+      setSelectedNames(new Set());
+      setFocusedIndex(-1);
 
       setContextMenu({
         isOpen: true,
@@ -211,9 +222,22 @@ const Pane = ({
     }
   };
 
+  const handleEmptyAreaClick = (e) => {
+    // Left-click on empty space deselects all items (like Windows Explorer)
+    if (isEmptyAreaTarget(e.target)) {
+      setSelectedNames(new Set());
+      setFocusedIndex(-1);
+    }
+  };
+
   const handleHeaderMenuClick = (e) => {
     e.stopPropagation();
     onActivate();
+
+    // Deselect all items (opening folder-level menu, not item menu)
+    setSelectedNames(new Set());
+    setFocusedIndex(-1);
+
     const rect = e.currentTarget.getBoundingClientRect();
     setContextMenu({
       isOpen: true,
@@ -1245,6 +1269,7 @@ const Pane = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={handleEmptyAreaClick}
       >
         {/* Animated loading bar at the top of active loading pane */}
         {loading && <div className="pane-loading-bar" />}

@@ -35,6 +35,9 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - Mở thư mục chứa tệp trong Windows Explorer gốc (`Show in Explorer`).
   - Thao tác nén tệp tin thành định dạng ZIP, giải nén tệp tin ZIP trực tiếp.
   - Tính toán tổng dung lượng của thư mục con đệ quy (quá trình xử lý không đồng bộ hiển thị chi tiết số file/thư mục).
+- Bấm chuột trái vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục (tương tự Windows Explorer).
+- Bấm chuột phải vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục trước khi hiển thị menu ngữ cảnh thư mục hiện tại.
+- Nút ⋮ (More) trên thanh điều hướng cho phép mở nhanh menu ngữ cảnh thư mục hiện tại mà không cần chuột phải.
 
 ## 7. Liên Kết Ứng Dụng Ngoài (Shell App Launcher)
 - Nhận diện tự động và tích hợp khởi chạy ứng dụng mặc định:

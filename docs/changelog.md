@@ -2,6 +2,14 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.1.1] - 24-06-2026
+
+### Cải Tiến
+- **Bỏ chọn khi click vùng trống**: Bấm chuột trái vào vùng trống trong danh sách tệp sẽ tự động bỏ chọn tất cả tệp/thư mục đang được chọn, giống với hành vi mặc định của Windows Explorer.
+- **Menu ngữ cảnh vùng trống**: Bấm chuột phải vào vùng trống cũng sẽ bỏ chọn tất cả trước khi hiển thị menu ngữ cảnh thư mục hiện tại (New Folder, Paste, Refresh, v.v.).
+- **Nút mở nhanh menu thư mục**: Nút ⋮ (More) trên thanh điều hướng bỏ chọn tất cả tệp khi mở menu ngữ cảnh thư mục, đảm bảo hành vi nhất quán.
+- **Hỗ trợ Grid View**: Hành vi bỏ chọn và menu ngữ cảnh vùng trống hoạt động đồng nhất trên cả chế độ xem danh sách chi tiết (Detail) và lưới ảnh (Grid).
+
 ## [1.1.0] - 24-06-2026
 
 ### Thêm Mới
