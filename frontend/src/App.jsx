@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, Sidebar as SidebarIcon,
   Copy, ArrowRightLeft,
   RectangleHorizontal, Columns2, Columns3, Settings,
-  ChevronDown, X, Folder, Sliders
+  ChevronDown, X, Folder, Sliders, FileText
 } from 'lucide-react';
 
 const App = () => {
