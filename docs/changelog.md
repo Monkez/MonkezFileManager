@@ -2,6 +2,13 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.2.1] - 24-06-2026
+
+### Thêm Mới
+- **Chọn nhiều tệp bằng phím tắt**: Hỗ trợ giữ phím `Shift` kết hợp phím mũi tên Lên/Xuống để mở rộng vùng chọn nhiều tệp tin liên tiếp.
+- **Xóa vĩnh viễn nhiều tệp**: Hỗ trợ phím tắt `Shift+Delete` và tùy chọn "Permanent Delete" trong menu ngữ cảnh để xóa trực tiếp (không qua thùng rác), hiển thị hộp thoại cảnh báo với toàn bộ danh sách tệp được chọn.
+- **Toggles hiển thị nhanh**: Bổ sung nút chuyển đổi bật/tắt nhanh Tệp tin ẩn (Hidden Items) và Phần mở rộng tệp (File Extensions) trực tiếp trên thanh công cụ chính (Global Toolbar).
+
 ## [1.2.0] - 24-06-2026
 
 ### Thêm Mới

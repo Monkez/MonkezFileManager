@@ -33,6 +33,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Bấm chuột phải lên tệp hoặc vùng trống để mở Menu ngữ cảnh:
   - Sao chép đường dẫn tuyệt đối (`Copy Path`).
   - Mở thư mục chứa tệp trong Windows Explorer gốc (`Show in Explorer`).
+  - Xóa vĩnh viễn tệp tin nhanh qua tùy chọn `Permanent Delete` (`Shift+Delete`).
   - Thao tác nén tệp tin thành định dạng ZIP, giải nén tệp tin ZIP trực tiếp.
   - Tính toán tổng dung lượng của thư mục con đệ quy (quá trình xử lý không đồng bộ hiển thị chi tiết số file/thư mục).
 - Bấm chuột trái vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục (tương tự Windows Explorer).
@@ -58,3 +59,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 9. Khôi Phục Lịch Sử Thư Mục (Restore Session)
 - Mỗi Pane ghi nhớ thư mục cuối cùng đang hoạt động trước khi tắt ứng dụng hoặc khởi động lại máy tính.
 - Nút **Restore (Khôi phục lịch sử)** ở thanh điều hướng mỗi Pane (cạnh nút Up) cho phép người dùng click để mở nhanh thư mục hoạt động cuối cùng của Pane đó trong phiên trước. Nút sẽ tự động disable/ẩn khi Pane đã ở thư mục đó.
+
+## 10. Thanh Công Cụ Hiển Thị (View Toggles)
+- Bật/tắt hiển thị tệp tin và thư mục ẩn (Hidden Items) qua biểu tượng con mắt trên thanh công cụ chính.
+- Bật/tắt hiển thị phần mở rộng của tệp tin (File Extensions) qua biểu tượng văn bản. Cài đặt tự động ghi nhớ cho các phiên bản làm việc sau.

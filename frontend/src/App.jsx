@@ -61,6 +61,11 @@ const App = () => {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
+  const [showExtensions, setShowExtensions] = useState(() => {
+    const saved = localStorage.getItem('monkez_show_extensions');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
   const [openInDefaultApp, setOpenInDefaultApp] = useState(() => {
     const saved = localStorage.getItem('monkez_open_default_app');
     return saved !== null ? JSON.parse(saved) : true;
@@ -74,6 +79,11 @@ const App = () => {
   const handleShowHiddenToggle = (val) => {
     setShowHiddenFiles(val);
     localStorage.setItem('monkez_show_hidden', JSON.stringify(val));
+  };
+
+  const handleShowExtensionsToggle = (val) => {
+    setShowExtensions(val);
+    localStorage.setItem('monkez_show_extensions', JSON.stringify(val));
   };
 
   const handleOpenDefaultToggle = (val) => {
@@ -404,7 +414,7 @@ const App = () => {
     } else if (type === 'rename') {
       url = '/api/rename';
       body = { currentPath: data.currentPath, oldName: data.oldName, newName: fields.name };
-    } else if (type === 'delete') {
+    } else if (type === 'delete' || type === 'delete-permanent') {
       url = '/api/delete';
       body = { paths: data.paths };
     } else if (type === 'transfer' || type === 'shortcut-copy' || type === 'shortcut-move') {
@@ -491,6 +501,28 @@ const App = () => {
           >
             <Trash2 size={16} />
             <span>Delete</span>
+          </button>
+        </div>
+
+        <div className="toolbar-divider" />
+
+        {/* View Options Group */}
+        <div className="toolbar-group">
+          <button 
+            className={`toolbar-btn ${showHiddenFiles ? 'active' : ''}`} 
+            onClick={() => handleShowHiddenToggle(!showHiddenFiles)}
+            title="Toggle Hidden Files"
+          >
+            {showHiddenFiles ? <Eye size={15} /> : <EyeOff size={15} />}
+            <span>Hidden Items</span>
+          </button>
+          <button 
+            className={`toolbar-btn ${showExtensions ? 'active' : ''}`} 
+            onClick={() => handleShowExtensionsToggle(!showExtensions)}
+            title="Toggle File Extensions"
+          >
+            <FileText size={15} />
+            <span>Extensions</span>
           </button>
         </div>
 
@@ -878,6 +910,7 @@ const App = () => {
               clipboard={clipboard}
               setClipboard={setClipboard}
               showHiddenFiles={showHiddenFiles}
+              showExtensions={showExtensions}
               openInDefaultApp={openInDefaultApp}
             />
           ))}
@@ -967,6 +1000,16 @@ const App = () => {
                   <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}>
                     <input 
                       type="checkbox" 
+                      checked={showExtensions} 
+                      onChange={(e) => handleShowExtensionsToggle(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Hiển thị phần mở rộng tập tin (File extensions)</span>
+                  </label>
+                  
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input 
+                      type="checkbox" 
                       checked={openInDefaultApp} 
                       onChange={(e) => handleOpenDefaultToggle(e.target.checked)}
                       style={{ cursor: 'pointer' }}
@@ -1045,11 +1088,13 @@ const App = () => {
                   if (window.confirm('Bạn có chắc chắn muốn khôi phục cài đặt mặc định không?')) {
                     localStorage.removeItem('monkez_theme');
                     localStorage.removeItem('monkez_show_hidden');
+                    localStorage.removeItem('monkez_show_extensions');
                     localStorage.removeItem('monkez_open_default_app');
                     localStorage.removeItem('monkez_start_folder');
                     localStorage.removeItem('monkez_terminal_type');
                     setTheme('dark');
                     setShowHiddenFiles(true);
+                    setShowExtensions(true);
                     setOpenInDefaultApp(true);
                     setDefaultStartFolder('C:\\');
                     setTerminalType('auto');
@@ -1109,6 +1154,8 @@ const App = () => {
                   <span>Đổi tên tập tin/thư mục</span>
                   <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>Delete</span>
                   <span>Xóa tập tin/thư mục</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>Shift + Delete</span>
+                  <span>Xóa vĩnh viễn nhiều tập tin</span>
                   <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>F7</span>
                   <span>Tạo thư mục mới</span>
                 </div>
@@ -1205,6 +1252,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
       case 'mkfile': return 'Create File';
       case 'rename': return 'Rename Item';
       case 'delete': return 'Confirm Delete';
+      case 'delete-permanent': return 'Permanent Delete';
       case 'transfer': return 'Copy / Move Items';
       case 'shortcut-copy': return 'Copy Items';
       case 'shortcut-move': return 'Move Items';
@@ -1240,9 +1288,13 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
         )}
 
         {/* Deletion Details */}
-        {type === 'delete' && (
+        {(type === 'delete' || type === 'delete-permanent') && (
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            <p>Are you sure you want to permanently delete the following items?</p>
+            <p>
+              {type === 'delete-permanent' 
+                ? 'Bạn có chắc chắn muốn XÓA VĨNH VIỄN các tập tin/thư mục này không?' 
+                : 'Are you sure you want to delete the following items?'}
+            </p>
             <div style={{ maxHeight: 120, overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: 8, borderRadius: 4, marginTop: 8, fontFamily: 'monospace', fontSize: 11 }}>
               {data.paths.map(p => (
                 <div key={p} style={{ wordBreak: 'break-all', marginBottom: 2 }}>
@@ -1307,7 +1359,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
             >
               Cancel
             </button>
-            {type === 'delete' ? (
+            {(type === 'delete' || type === 'delete-permanent') ? (
               <button 
                 type="submit" 
                 className="modal-btn modal-btn-danger"

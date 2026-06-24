@@ -38,6 +38,8 @@ Khi chọn tệp tin và thực hiện thao tác:
 | **Ctrl + V** | Paste | Dán các tệp từ clipboard vào thư mục hiện tại |
 | **F2** | Đổi tên | Đổi tên tệp hoặc thư mục đang chọn |
 | **Delete** | Xóa | Xóa vĩnh viễn tệp hoặc thư mục đang chọn |
+| **Shift + Delete** | Xóa vĩnh viễn | Mở hộp thoại xác nhận xóa vĩnh viễn các tệp đã chọn |
+| **Shift + Lên/Xuống** | Chọn nhiều tệp | Mở rộng vùng chọn tệp tin lên/xuống |
 | **F5** | Copy to Target | Copy nhanh các tệp chọn sang khung hình lân cận |
 | **F6** | Move to Target | Di chuyển nhanh các tệp chọn sang khung hình lân cận |
 | **F7** | Tạo thư mục | Tạo một thư mục mới tại đường dẫn hiện tại |

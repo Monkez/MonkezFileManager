@@ -27,6 +27,7 @@ const Pane = ({
   clipboard = { paths: [], type: 'copy' },
   setClipboard = () => {},
   showHiddenFiles = true,
+  showExtensions = true,
   openInDefaultApp = true
 }) => {
   const getStartFolder = () => {
@@ -874,13 +875,27 @@ const Pane = ({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       const nextIndex = Math.min(focusedIndex + 1, sorted.length - 1);
-      setFocusedIndex(nextIndex);
-      setSelectedNames(new Set([sorted[nextIndex].name]));
+      if (e.shiftKey && focusedIndex >= 0) {
+        const newSelected = new Set(selectedNames);
+        newSelected.add(sorted[nextIndex].name);
+        setSelectedNames(newSelected);
+        setFocusedIndex(nextIndex);
+      } else {
+        setFocusedIndex(nextIndex);
+        setSelectedNames(new Set([sorted[nextIndex].name]));
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const nextIndex = Math.max(focusedIndex - 1, 0);
-      setFocusedIndex(nextIndex);
-      setSelectedNames(new Set([sorted[nextIndex].name]));
+      if (e.shiftKey && focusedIndex >= 0) {
+        const newSelected = new Set(selectedNames);
+        newSelected.add(sorted[nextIndex].name);
+        setSelectedNames(newSelected);
+        setFocusedIndex(nextIndex);
+      } else {
+        setFocusedIndex(nextIndex);
+        setSelectedNames(new Set([sorted[nextIndex].name]));
+      }
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (focusedIndex >= 0) {
@@ -891,7 +906,7 @@ const Pane = ({
       goUp();
     } else if (e.key === 'Delete') {
       e.preventDefault();
-      triggerFileAction('delete');
+      triggerFileAction(e.shiftKey ? 'delete-permanent' : 'delete');
     } else if (e.key === 'F2') {
       e.preventDefault();
       triggerFileAction('rename');
@@ -920,8 +935,8 @@ const Pane = ({
           oldName: name, 
           callback: () => fetchFiles(filesData.currentPath) 
         });
-      } else if (action === 'delete') {
-        openModal('delete', { 
+      } else if (action === 'delete' || action === 'delete-permanent') {
+        openModal(action, { 
           paths: selectedPaths, 
           callback: () => fetchFiles(filesData.currentPath) 
         });
@@ -1461,7 +1476,9 @@ const Pane = ({
                   >
                     <td className="file-item-name-cell">
                       {getFileIcon(item)}
-                      <span className="sidebar-item-text" title={item.name}>{item.name}</span>
+                      <span className="sidebar-item-text" title={item.name}>
+                        {(showExtensions || item.isDirectory || !item.ext) ? item.name : item.name.slice(0, item.name.length - item.ext.length) || item.name}
+                      </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       {item.isDirectory ? '<DIR>' : formatSize(item.size)}
@@ -1516,7 +1533,9 @@ const Pane = ({
                   <div className="grid-item-thumbnail-wrapper">
                     {getGridItemMedia(item, sizeLabel)}
                   </div>
-                  <span className="grid-item-name" title={item.name}>{item.name}</span>
+                  <span className="grid-item-name" title={item.name}>
+                    {(showExtensions || item.isDirectory || !item.ext) ? item.name : item.name.slice(0, item.name.length - item.ext.length) || item.name}
+                  </span>
                 </div>
               );
             })}
@@ -1576,6 +1595,9 @@ const Pane = ({
               </div>
               <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }}>
                 Delete <span className="context-menu-shortcut">Del</span>
+              </div>
+              <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete-permanent'); }}>
+                Permanent Delete <span className="context-menu-shortcut">Shift+Del</span>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}>
