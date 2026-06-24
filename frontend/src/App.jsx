@@ -534,10 +534,7 @@ const App = () => {
             <RefreshCw size={15} />
             <span>Refresh</span>
           </button>
-          <button className="toolbar-btn" onClick={handleAddBookmark} title="Add current folder to Bookmarks">
-            <Star size={15} style={{ fill: bookmarks.some(b => b.path === activePaneSel?.currentPath) ? '#fbbf24' : 'none', color: '#fbbf24' }} />
-            <span>Bookmark</span>
-          </button>
+
           
           {/* 1. Bookmark Cá Nhân Dropdown */}
           <div className="bookmarks-dropdown-container" onClick={(e) => e.stopPropagation()}>

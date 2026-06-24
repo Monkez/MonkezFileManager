@@ -99,6 +99,11 @@ const Pane = ({
   const [selectedNames, setSelectedNames] = useState(new Set()); // list of selected item names in active tab
   const [focusedIndex, setFocusedIndex] = useState(-1); // row keyboard focus
 
+  // Drag selection state
+  const [dragSelect, setDragSelect] = useState(null);
+  const [dragDidMove, setDragDidMove] = useState(false);
+
+
   // Custom Context Menu State
   const [contextMenu, setContextMenu] = useState({
     isOpen: false,
@@ -128,6 +133,74 @@ const Pane = ({
     };
     fetchShellApps();
   }, []);
+
+  const handleAreaMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (isEmptyAreaTarget(e.target)) {
+      setDragSelect({
+        startX: e.clientX,
+        startY: e.clientY,
+        currentX: e.clientX,
+        currentY: e.clientY
+      });
+      setDragDidMove(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!dragSelect) return;
+
+    let localDidMove = false;
+
+    const onMouseMove = (e) => {
+      // Check if mouse moved more than a threshold
+      if (!localDidMove && (Math.abs(e.clientX - dragSelect.startX) > 5 || Math.abs(e.clientY - dragSelect.startY) > 5)) {
+        localDidMove = true;
+        setDragDidMove(true);
+      }
+
+      if (!localDidMove) return;
+
+      setDragSelect(prev => ({ ...prev, currentX: e.clientX, currentY: e.clientY }));
+      
+      const selectionBox = {
+        left: Math.min(dragSelect.startX, e.clientX),
+        top: Math.min(dragSelect.startY, e.clientY),
+        right: Math.max(dragSelect.startX, e.clientX),
+        bottom: Math.max(dragSelect.startY, e.clientY)
+      };
+
+      const newSelectedNames = new Set();
+      if (paneRef.current) {
+        const itemEls = paneRef.current.querySelectorAll('.file-table tbody tr, .file-grid .grid-item');
+        itemEls.forEach((el) => {
+          if (el.textContent.includes('.. (Parent Folder)')) return;
+          const rect = el.getBoundingClientRect();
+          const isIntersecting = !(rect.left > selectionBox.right || 
+                                   rect.right < selectionBox.left || 
+                                   rect.top > selectionBox.bottom ||
+                                   rect.bottom < selectionBox.top);
+          if (isIntersecting) {
+            const name = el.getAttribute('data-name');
+            if (name) newSelectedNames.add(name);
+          }
+        });
+      }
+      setSelectedNames(newSelectedNames);
+    };
+    
+    const onMouseUp = () => {
+      setDragSelect(null);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [dragSelect]);
+
 
   const handleOpenWith = async (appName, action, targetPath) => {
     setContextMenu(prev => ({ ...prev, isOpen: false }));
@@ -247,6 +320,8 @@ const Pane = ({
   };
 
   const handleEmptyAreaClick = (e) => {
+    if (dragDidMove) return; // Prevent clearing selection after drag
+
     // Left-click on empty space deselects all items (like Windows Explorer)
     if (isEmptyAreaTarget(e.target)) {
       setSelectedNames(new Set());
@@ -1197,14 +1272,6 @@ const Pane = ({
           >
             <History size={14} />
           </button>
-          
-          <button
-            className="pane-tab-widget-btn"
-            title="Folder Menu (Actions/New/Paste/Refresh)"
-            onClick={handleHeaderMenuClick}
-          >
-            <MoreVertical size={14} />
-          </button>
 
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
@@ -1231,6 +1298,14 @@ const Pane = ({
               </div>
             )}
           </div>
+          
+          <button
+            className="pane-tab-widget-btn"
+            title="Folder Menu (Actions/New/Paste/Refresh)"
+            onClick={handleHeaderMenuClick}
+          >
+            <MoreVertical size={14} />
+          </button>
         </div>
       </div>
 
@@ -1409,7 +1484,22 @@ const Pane = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleEmptyAreaClick}
+        onMouseDown={handleAreaMouseDown}
+        style={{ position: 'relative' }}
       >
+        {dragSelect && (
+          <div style={{
+            position: 'fixed',
+            left: Math.min(dragSelect.startX, dragSelect.currentX),
+            top: Math.min(dragSelect.startY, dragSelect.currentY),
+            width: Math.abs(dragSelect.currentX - dragSelect.startX),
+            height: Math.abs(dragSelect.currentY - dragSelect.startY),
+            backgroundColor: 'rgba(56, 189, 248, 0.2)',
+            border: '1px solid rgba(56, 189, 248, 0.6)',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }} />
+        )}
         {/* Animated loading bar at the top of active loading pane */}
         {loading && <div className="pane-loading-bar" />}
 
@@ -1467,6 +1557,7 @@ const Pane = ({
                 return (
                   <tr
                     key={item.name}
+                    data-name={item.name}
                     className={`${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
                     onClick={(e) => handleItemClick(item, idx, e)}
                     onDoubleClick={() => handleItemDoubleClick(item)}
@@ -1523,6 +1614,7 @@ const Pane = ({
               return (
                 <div
                   key={item.name}
+                  data-name={item.name}
                   className={`grid-item ${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
                   onClick={(e) => handleItemClick(item, idx, e)}
                   onDoubleClick={() => handleItemDoubleClick(item)}
@@ -1658,6 +1750,17 @@ const Pane = ({
               </div>
               <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkfile'); }}>
                 New File
+              </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => { 
+                setContextMenu(prev => ({ ...prev, isOpen: false })); 
+                let name = filesData.currentPath;
+                const parsed = name.replace(/\\/g, '/');
+                const parts = parsed.split('/').filter(Boolean);
+                if (parts.length > 0) name = parts[parts.length - 1];
+                openModal('bookmark', { name, path: filesData.currentPath }); 
+              }}>
+                Add Current Folder to Bookmarks
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleRevealInExplorer(filesData.currentPath)}>
