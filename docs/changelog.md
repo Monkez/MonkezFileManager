@@ -2,6 +2,15 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.2.0] - 24-06-2026
+
+### Thêm Mới
+- **Bookmarks Dropdown ở thanh công cụ chính (Top Toolbar)**: Cho phép xem nhanh và chọn trực tiếp danh sách bookmark đã lưu để điều hướng Pane đang hoạt động mà không cần mở thanh Sidebar. Hỗ trợ xóa bookmark nhanh trực tiếp từ menu dropdown.
+- **Khôi phục thư mục phiên làm việc trước (Restore Last Folder)**: Bổ sung nút khôi phục lịch sử (icon đồng hồ) ở thanh điều hướng mỗi Pane. Khi ứng dụng khởi động lại hoặc máy tính reboot, click nút này sẽ mở lại thư mục hoạt động cuối cùng của Pane đó ở phiên làm việc trước. Nút tự động ẩn/disable khi Pane đã ở đúng thư mục đó.
+
+### Cải Tiến
+- **Nút ổ cứng nhanh chi tiết ở đầu Pane**: Nâng cấp các nút ổ đĩa cục bộ ở đầu mỗi Pane hiển thị đầy đủ icon ổ đĩa, tên nhãn ổ đĩa + chữ cái phân vùng (ví dụ: `Local Disk (C:)`), cùng thông tin dung lượng thực tế của ổ đĩa (`[Dung lượng trống] trống / [Tổng dung lượng]`).
+
 ## [1.1.1] - 24-06-2026
 
 ### Sửa Lỗi

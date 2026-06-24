@@ -3,8 +3,16 @@ import {
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
   X, AlertTriangle, ChevronRight, MoreVertical,
-  List, Grid
+  List, Grid, HardDrive, History
 } from 'lucide-react';
+
+const formatBytes = (bytes) => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
 
 const Pane = ({
   paneId,
@@ -40,6 +48,10 @@ const Pane = ({
   ]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
 
+  const [restorablePath, setRestorablePath] = useState(() => {
+    return localStorage.getItem('monkez_last_path_' + paneId);
+  });
+
   // View Mode Settings
   const [viewMode, setViewMode] = useState(() => {
     const saved = localStorage.getItem(`monkez_viewmode_${paneId}`);
@@ -59,6 +71,13 @@ const Pane = ({
     breadcrumbs: [],
     items: []
   });
+
+  const hasLastFolder = !!(restorablePath && restorablePath.toLowerCase() !== filesData.currentPath.toLowerCase());
+  const restoreLastFolder = () => {
+    if (restorablePath) {
+      navigateTo(restorablePath);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -412,6 +431,13 @@ const Pane = ({
   useEffect(() => {
     fetchFiles(activeTab.path);
   }, [activeTab.path]);
+
+  // Save current path to localStorage for session restoring
+  useEffect(() => {
+    if (filesData.currentPath) {
+      localStorage.setItem('monkez_last_path_' + paneId, filesData.currentPath);
+    }
+  }, [filesData.currentPath, paneId]);
 
   // Sync back path transitions with parent container active selection
   // Always report currentPath so bookmarks/toolbar actions work
@@ -1107,6 +1133,52 @@ const Pane = ({
         >
           <Plus size={14} />
         </button>
+
+        {/* Tab-row right-side quick widgets */}
+        <div className="pane-tabs-widgets" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="pane-tab-widget-btn"
+            title={hasLastFolder ? `Khôi phục thư mục phiên trước: ${restorablePath}` : "Không có lịch sử khôi phục"}
+            onClick={restoreLastFolder}
+            disabled={!hasLastFolder}
+          >
+            <History size={14} />
+          </button>
+          
+          <button
+            className="pane-tab-widget-btn"
+            title="Folder Menu (Actions/New/Paste/Refresh)"
+            onClick={handleHeaderMenuClick}
+          >
+            <MoreVertical size={14} />
+          </button>
+
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button
+              className={`pane-tab-widget-btn ${viewMode !== 'text' ? 'active' : ''}`}
+              title="Thay đổi chế độ xem (View Mode)"
+              onClick={(e) => { e.stopPropagation(); setViewMenuOpen(!viewMenuOpen); }}
+            >
+              {viewMode === 'text' ? <List size={14} /> : <Grid size={14} />}
+            </button>
+            {viewMenuOpen && (
+              <div className="context-menu glass" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, zIndex: 100 }}>
+                <div className={`context-menu-item ${viewMode === 'text' ? 'active' : ''}`} onClick={() => handleViewModeChange('text')}>
+                  <List size={14} style={{ marginRight: 8 }} /> Chi tiết (Chỉ chữ)
+                </div>
+                <div className={`context-menu-item ${viewMode === 'grid-small' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-small')}>
+                  <Grid size={14} style={{ marginRight: 8 }} /> Ảnh nhỏ
+                </div>
+                <div className={`context-menu-item ${viewMode === 'grid-medium' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-medium')}>
+                  <Grid size={14} style={{ marginRight: 8 }} /> Ảnh vừa
+                </div>
+                <div className={`context-menu-item ${viewMode === 'grid-large' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-large')}>
+                  <Grid size={14} style={{ marginRight: 8 }} /> Ảnh lớn
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Pane specific Drives Letter list toolbar */}
@@ -1114,6 +1186,35 @@ const Pane = ({
         {drives.map((drive) => {
           const letter = drive.DeviceID;
           const isActiveDrive = filesData.currentPath.toLowerCase().startsWith(letter.toLowerCase());
+          
+          const size = Number(drive.Size) || 0;
+          const free = Number(drive.FreeSpace) || 0;
+          const used = size - free;
+          const percentUsed = size > 0 ? (used / size) * 100 : 0;
+          
+          // Determine color scheme based on space usage
+          let color = '#3b82f6'; // Blue for low usage (<50%)
+          let bg = isActiveDrive ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.04)';
+          let border = isActiveDrive ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.2)';
+          
+          if (size > 0) {
+            if (percentUsed > 80) {
+              color = '#ef4444'; // Red for critical usage (>80%)
+              bg = isActiveDrive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.05)';
+              border = isActiveDrive ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.25)';
+            } else if (percentUsed > 50) {
+              color = '#f59e0b'; // Amber/Yellow for warning usage (50%-80%)
+              bg = isActiveDrive ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.05)';
+              border = isActiveDrive ? 'rgba(245, 158, 11, 0.6)' : 'rgba(245, 158, 11, 0.25)';
+            }
+          }
+          
+          const driveStyleVars = {
+            '--drive-bg': bg,
+            '--drive-border': border,
+            '--drive-color': color
+          };
+
           return (
             <button
               key={letter}
@@ -1122,8 +1223,25 @@ const Pane = ({
                 onActivate();
                 navigateTo(letter.endsWith('\\') ? letter : letter + '\\');
               }}
+              title={drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
+              style={driveStyleVars}
             >
-              {letter}
+              <HardDrive size={13} style={{ color: isActiveDrive ? color : 'var(--text-inactive)', opacity: 0.9 }} />
+              <div className="drive-btn-info">
+                <span className="drive-btn-name" style={{ color: isActiveDrive ? 'var(--text-main)' : undefined }}>
+                  {drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
+                </span>
+                {size > 0 && (
+                  <span className="drive-btn-space">
+                    {formatBytes(free)} trống / {formatBytes(size)}
+                  </span>
+                )}
+              </div>
+              {size > 0 && (
+                <div className="drive-btn-progress-bar">
+                  <div className="drive-btn-progress-fill" style={{ width: `${percentUsed}%`, backgroundColor: color }} />
+                </div>
+              )}
             </button>
           );
         })}
@@ -1155,39 +1273,7 @@ const Pane = ({
         >
           <ArrowUp size={16} />
         </button>
-        <button
-          className="nav-history-btn"
-          title="Folder Menu (Actions/New/Paste/Refresh)"
-          onClick={handleHeaderMenuClick}
-        >
-          <MoreVertical size={16} />
-        </button>
 
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <button
-            className={`nav-history-btn ${viewMode !== 'text' ? 'active' : ''}`}
-            title="Thay đổi chế độ xem (View Mode)"
-            onClick={(e) => { e.stopPropagation(); setViewMenuOpen(!viewMenuOpen); }}
-          >
-            {viewMode === 'text' ? <List size={16} /> : <Grid size={16} />}
-          </button>
-          {viewMenuOpen && (
-            <div className="context-menu glass" style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 100 }}>
-              <div className={`context-menu-item ${viewMode === 'text' ? 'active' : ''}`} onClick={() => handleViewModeChange('text')}>
-                <List size={14} style={{ marginRight: 8 }} /> Chi tiết (Chỉ chữ)
-              </div>
-              <div className={`context-menu-item ${viewMode === 'grid-small' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-small')}>
-                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh nhỏ
-              </div>
-              <div className={`context-menu-item ${viewMode === 'grid-medium' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-medium')}>
-                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh vừa
-              </div>
-              <div className={`context-menu-item ${viewMode === 'grid-large' ? 'active' : ''}`} onClick={() => handleViewModeChange('grid-large')}>
-                <Grid size={14} style={{ marginRight: 8 }} /> Ảnh lớn
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="path-input-container" onClick={() => { if (!isEditingPath) setIsEditingPath(true); }}>
           {isEditingPath ? (

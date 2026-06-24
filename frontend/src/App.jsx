@@ -7,7 +7,8 @@ import {
   Grid2X2, LayoutGrid, Star, HelpCircle,
   Eye, EyeOff, Sidebar as SidebarIcon,
   Copy, ArrowRightLeft,
-  RectangleHorizontal, Columns2, Columns3, Settings
+  RectangleHorizontal, Columns2, Columns3, Settings,
+  ChevronDown, X
 } from 'lucide-react';
 
 const App = () => {
@@ -45,6 +46,7 @@ const App = () => {
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showBookmarksDropdown, setShowBookmarksDropdown] = useState(false);
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -132,6 +134,16 @@ const App = () => {
     loadDrives();
     loadBookmarks();
   }, []);
+
+  // Close bookmarks dropdown when clicking outside
+  useEffect(() => {
+    if (!showBookmarksDropdown) return;
+    const handleClose = () => {
+      setShowBookmarksDropdown(false);
+    };
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [showBookmarksDropdown]);
 
   // Listen for bookmark changes from Pane context menu actions
   useEffect(() => {
@@ -452,6 +464,51 @@ const App = () => {
             <Star size={15} style={{ fill: bookmarks.some(b => b.path === activePaneSel?.currentPath) ? '#fbbf24' : 'none', color: '#fbbf24' }} />
             <span>Bookmark</span>
           </button>
+          
+          <div className="bookmarks-dropdown-container" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className={`toolbar-btn ${showBookmarksDropdown ? 'active' : ''}`} 
+              onClick={() => setShowBookmarksDropdown(!showBookmarksDropdown)} 
+              title="Danh sách bookmark đã lưu (Saved Bookmarks)"
+            >
+              <Star size={15} style={{ fill: '#fbbf24', color: '#fbbf24' }} />
+              <span>Bookmarks</span>
+              <ChevronDown size={12} style={{ marginLeft: '4px' }} />
+            </button>
+            {showBookmarksDropdown && (
+              <div className="bookmarks-dropdown-menu">
+                {bookmarks.length === 0 ? (
+                  <div className="bookmarks-dropdown-item disabled">Chưa có bookmark nào</div>
+                ) : (
+                  bookmarks.map((b, idx) => (
+                    <div 
+                      key={idx} 
+                      className="bookmarks-dropdown-item" 
+                      onClick={() => { 
+                        handleNavigate(b.path); 
+                        setShowBookmarksDropdown(false); 
+                      }}
+                    >
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">{b.name}</span>
+                        <span className="bookmark-path" title={b.path}>{b.path}</span>
+                      </div>
+                      <button
+                        className="delete-bookmark-sub-btn"
+                        title="Xóa bookmark"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteBookmark(idx);
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="toolbar-divider" />

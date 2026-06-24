@@ -47,5 +47,10 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **Terminal**: Mở nhanh Windows Terminal hoặc cmd tại đường dẫn hiện tại.
 
 ## 8. Quản Lý Drive và Bookmarks
-- Tự động hiển thị các ổ đĩa cục bộ của Windows (C:, D:, E:, v.v.) kèm thanh dung lượng sử dụng.
-- Cho phép người dùng đánh dấu (Bookmark) các thư mục quan trọng để truy cập nhanh từ thanh Sidebar bên trái.
+- Tự động hiển thị các ổ đĩa cục bộ của Windows (C:, D:, E:, v.v.) kèm thanh dung lượng sử dụng trên thanh Sidebar bên trái.
+- Cho phép người dùng đánh dấu (Bookmark) các thư mục quan trọng để truy cập nhanh từ thanh Sidebar hoặc trực tiếp qua **Bookmarks Dropdown** trên thanh công cụ phía trên (Top Toolbar), giúp chuyển nhanh thư mục hoạt động mà không cần mở Sidebar.
+- Nút **ổ đĩa nhanh (Drive Toolbar)** ở đầu mỗi Pane hiển thị đầy đủ thông tin: nhãn ổ đĩa, biểu tượng, dung lượng trống và tổng dung lượng (ví dụ: `Local Disk (C:) - 45.2 GB trống / 120 GB`).
+
+## 9. Khôi Phục Lịch Sử Thư Mục (Restore Session)
+- Mỗi Pane ghi nhớ thư mục cuối cùng đang hoạt động trước khi tắt ứng dụng hoặc khởi động lại máy tính.
+- Nút **Restore (Khôi phục lịch sử)** ở thanh điều hướng mỗi Pane (cạnh nút Up) cho phép người dùng click để mở nhanh thư mục hoạt động cuối cùng của Pane đó trong phiên trước. Nút sẽ tự động disable/ẩn khi Pane đã ở thư mục đó.

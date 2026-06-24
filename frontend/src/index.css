@@ -125,6 +125,8 @@ body {
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-toolbar);
   backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 100;
 }
 
 @media (max-width: 1380px) {
@@ -198,6 +200,99 @@ body {
   background: var(--border-color);
   margin: 0 4px;
 }
+
+/* Bookmarks Dropdown menu in Top Toolbar */
+.bookmarks-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.bookmarks-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  min-width: 280px;
+  max-width: 400px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: var(--shadow-main);
+  z-index: 1000;
+  padding: 6px 0;
+}
+
+.bookmarks-dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bookmarks-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.bookmarks-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.bookmarks-dropdown-item.disabled {
+  color: var(--text-inactive);
+  cursor: not-allowed;
+  pointer-events: none;
+  font-style: italic;
+  font-size: 12px;
+  justify-content: center;
+}
+
+.bookmark-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.bookmark-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-path {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.delete-bookmark-sub-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-inactive);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.delete-bookmark-sub-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger-color);
+}
+
 
 /* Main Workspace */
 .main-workspace {
@@ -460,6 +555,44 @@ body {
   background: var(--bg-hover);
   color: var(--text-main);
 }
+
+/* Tab-row right-side quick widgets */
+.pane-tabs-widgets {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.pane-tab-widget-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.pane-tab-widget-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.pane-tab-widget-btn.active {
+  color: var(--accent-color);
+}
+
+.pane-tab-widget-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 
 /* Nav bar inside pane */
 .pane-nav-bar {
@@ -737,27 +870,66 @@ body {
 }
 
 .drive-letter-btn {
-  background: transparent;
-  border: 1px solid var(--glass-border);
+  background: var(--drive-bg, transparent);
+  border: 1px solid var(--drive-border, var(--glass-border));
   color: var(--text-muted);
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 5px 10px 8px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
 }
 
 .drive-letter-btn:hover {
   background: var(--bg-hover-subtle);
-  color: var(--text-main);
-  border-color: var(--accent-color);
+  border-color: var(--drive-color, var(--accent-color));
 }
 
 .drive-letter-btn.active {
-  background: var(--accent-light);
-  color: var(--accent-color);
-  border-color: var(--accent-color);
+  background: var(--drive-bg, var(--accent-light));
+  border-color: var(--drive-color, var(--accent-color));
+}
+
+.drive-btn-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-subtle);
+  width: 100%;
+}
+
+.drive-btn-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.drive-btn-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.drive-btn-name {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-main);
+}
+
+.drive-btn-space {
+  font-size: 9px;
+  opacity: 0.75;
+  font-weight: normal;
+  color: var(--text-muted);
 }
 
 /* Preview Panel */
