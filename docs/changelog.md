@@ -4,6 +4,9 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 
 ## [1.1.1] - 24-06-2026
 
+### Sửa Lỗi
+- **Sửa lỗi "Open Terminal here" không hoạt động**: Lệnh mở terminal bị sai cú pháp do escape ký tự ngoặc kép không đúng trong câu lệnh `cmd.exe`, đồng thời Windows Terminal được gọi bằng tên cứng `wt` thay vì dùng đường dẫn đầy đủ đã phát hiện. Đã sửa cả hai trường hợp cmd fallback và Windows Terminal.
+
 ### Cải Tiến
 - **Bỏ chọn khi click vùng trống**: Bấm chuột trái vào vùng trống trong danh sách tệp sẽ tự động bỏ chọn tất cả tệp/thư mục đang được chọn, giống với hành vi mặc định của Windows Explorer.
 - **Menu ngữ cảnh vùng trống**: Bấm chuột phải vào vùng trống cũng sẽ bỏ chọn tất cả trước khi hiển thị menu ngữ cảnh thư mục hiện tại (New Folder, Paste, Refresh, v.v.).

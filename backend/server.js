@@ -1092,9 +1092,9 @@ app.post('/api/open-with', (req, res) => {
     } catch (e) {}
 
     if (apps.terminal.path === 'cmd') {
-      cmd = `start cmd /k "cd /d \\"${dirPath}\\""`;
+      cmd = `start cmd /k "cd /d ${dirPath}"`;
     } else {
-      cmd = `start wt -d "${dirPath}"`;
+      cmd = `start "" "${apps.terminal.path}" -d "${dirPath}"`;
     }
   } else if (appName === 'vscode') {
     const execPath = apps.vscode.available ? `"${apps.vscode.path}"` : 'code';
