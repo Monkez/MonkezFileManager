@@ -47,6 +47,7 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showBookmarksDropdown, setShowBookmarksDropdown] = useState(false);
+  const [systemPaths, setSystemPaths] = useState(null);
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -130,9 +131,20 @@ const App = () => {
     }
   };
 
+  const loadSystemPaths = async () => {
+    try {
+      const response = await fetch('/api/system-paths');
+      const data = await response.json();
+      setSystemPaths(data);
+    } catch (err) {
+      console.error('Failed to load system paths', err);
+    }
+  };
+
   useEffect(() => {
     loadDrives();
     loadBookmarks();
+    loadSystemPaths();
   }, []);
 
   // Close bookmarks dropdown when clicking outside
@@ -214,6 +226,22 @@ const App = () => {
       }
     } catch (err) {
       console.error('Failed to delete bookmark', err);
+    }
+  };
+
+  const handleLaunchTool = async (toolName) => {
+    try {
+      const response = await fetch('/api/launch-tool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: toolName })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to launch tool');
+      }
+    } catch (err) {
+      alert(`Lỗi mở ứng dụng: ${err.message}`);
     }
   };
 
@@ -477,12 +505,14 @@ const App = () => {
             </button>
             {showBookmarksDropdown && (
               <div className="bookmarks-dropdown-menu">
+                {/* 1. BOOKMARKS CÁ NHÂN */}
+                <div className="bookmarks-dropdown-header">Bookmark Cá Nhân</div>
                 {bookmarks.length === 0 ? (
                   <div className="bookmarks-dropdown-item disabled">Chưa có bookmark nào</div>
                 ) : (
                   bookmarks.map((b, idx) => (
                     <div 
-                      key={idx} 
+                      key={`user-${idx}`} 
                       className="bookmarks-dropdown-item" 
                       onClick={() => { 
                         handleNavigate(b.path); 
@@ -506,6 +536,66 @@ const App = () => {
                     </div>
                   ))
                 )}
+
+                {/* 2. THƯ MỤC HỆ THỐNG */}
+                <div className="bookmarks-dropdown-header">Thư Mục Hệ Thống</div>
+                {systemPaths ? (
+                  <>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.desktop); setShowBookmarksDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Desktop (Màn hình chính)</span>
+                        <span className="bookmark-path">{systemPaths.desktop}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.downloads); setShowBookmarksDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Downloads (Tải về)</span>
+                        <span className="bookmark-path">{systemPaths.downloads}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.documents); setShowBookmarksDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Documents (Tài liệu)</span>
+                        <span className="bookmark-path">{systemPaths.documents}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFiles); setShowBookmarksDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Program Files</span>
+                        <span className="bookmark-path">{systemPaths.programFiles}</span>
+                      </div>
+                    </div>
+                    <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFilesX86); setShowBookmarksDropdown(false); }}>
+                      <div className="bookmark-info">
+                        <span className="bookmark-name">Program Files (x86)</span>
+                        <span className="bookmark-path">{systemPaths.programFilesX86}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bookmarks-dropdown-item disabled">Đang tải thư mục hệ thống...</div>
+                )}
+
+                {/* 3. CÔNG CỤ HỆ THỐNG */}
+                <div className="bookmarks-dropdown-header">Công Cụ Hệ Thống</div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('control-panel'); setShowBookmarksDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Control Panel</span>
+                    <span className="bookmark-path">Bảng điều khiển truyền thống</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('settings'); setShowBookmarksDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Windows Settings</span>
+                    <span className="bookmark-path">Ứng dụng cài đặt hệ thống</span>
+                  </div>
+                </div>
+                <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('add-remove-programs'); setShowBookmarksDropdown(false); }}>
+                  <div className="bookmark-info">
+                    <span className="bookmark-name">Add or Remove Programs</span>
+                    <span className="bookmark-path">Quản lý và gỡ cài đặt phần mềm</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

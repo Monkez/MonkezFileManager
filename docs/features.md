@@ -49,6 +49,10 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 8. Quản Lý Drive và Bookmarks
 - Tự động hiển thị các ổ đĩa cục bộ của Windows (C:, D:, E:, v.v.) kèm thanh dung lượng sử dụng trên thanh Sidebar bên trái.
 - Cho phép người dùng đánh dấu (Bookmark) các thư mục quan trọng để truy cập nhanh từ thanh Sidebar hoặc trực tiếp qua **Bookmarks Dropdown** trên thanh công cụ phía trên (Top Toolbar), giúp chuyển nhanh thư mục hoạt động mà không cần mở Sidebar.
+- Menu **Bookmarks Dropdown** được thiết kế lại thành **Advanced Quick Access Center** gồm 3 phân khu chuyên biệt:
+  - **Bookmark Cá Nhân**: Danh sách các bookmark người dùng lưu tùy chỉnh (hỗ trợ xóa nhanh bằng dấu `x`).
+  - **Thư Mục Hệ Thống**: Truy cập nhanh lập tức các thư mục Windows: Desktop, Downloads, Documents, Program Files, và Program Files (x86).
+  - **Công Cụ Hệ Thống**: Khởi chạy trực tiếp các công cụ quản trị hệ điều hành từ xa: Control Panel, Windows Settings và Add or Remove Programs.
 - Nút **ổ đĩa nhanh (Drive Toolbar)** ở đầu mỗi Pane hiển thị đầy đủ thông tin: nhãn ổ đĩa, biểu tượng, dung lượng trống và tổng dung lượng (ví dụ: `Local Disk (C:) - 45.2 GB trống / 120 GB`).
 
 ## 9. Khôi Phục Lịch Sử Thư Mục (Restore Session)

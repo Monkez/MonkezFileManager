@@ -222,6 +222,24 @@ body {
   padding: 6px 0;
 }
 
+.bookmarks-dropdown-header {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-inactive);
+  padding: 8px 12px 4px;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bookmarks-dropdown-header:not(:first-child) {
+  margin-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+
 .bookmarks-dropdown-item {
   display: flex;
   justify-content: space-between;
@@ -230,11 +248,6 @@ body {
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
   gap: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.bookmarks-dropdown-item:last-child {
-  border-bottom: none;
 }
 
 .bookmarks-dropdown-item:hover {

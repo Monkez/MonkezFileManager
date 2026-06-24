@@ -66,6 +66,50 @@ const getBookmarksFile = () => {
 // Helper to check if running on Windows
 const isWindows = process.platform === 'win32';
 
+// Get Resolved System Paths API
+app.get('/api/system-paths', (req, res) => {
+  const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
+  const desktop = path.join(userProfile, 'Desktop');
+  const downloads = path.join(userProfile, 'Downloads');
+  const documents = path.join(userProfile, 'Documents');
+  const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+  res.json({
+    desktop,
+    downloads,
+    documents,
+    programFiles,
+    programFilesX86
+  });
+});
+
+// Launch System Utility Tools API
+app.post('/api/launch-tool', (req, res) => {
+  const { tool } = req.body;
+  let cmd = '';
+
+  if (tool === 'control-panel') {
+    cmd = 'control';
+  } else if (tool === 'settings') {
+    cmd = 'start ms-settings:';
+  } else if (tool === 'add-remove-programs') {
+    cmd = 'start ms-settings:appsfeatures';
+  }
+
+  if (!cmd) {
+    return res.status(400).json({ error: 'Unknown system utility tool' });
+  }
+
+  exec(cmd, (error) => {
+    if (error) {
+      console.error(`Failed to launch tool ${tool}:`, error);
+      return res.status(500).json({ error: `Failed to launch: ${error.message}` });
+    }
+    res.json({ success: true });
+  });
+});
+
 // 1. Get Drives API
 app.get('/api/drives', (req, res) => {
   if (!isWindows) {
