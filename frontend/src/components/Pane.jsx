@@ -3,7 +3,10 @@ import {
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
   X, AlertTriangle, ChevronRight, MoreVertical,
-  List, Grid, HardDrive, History
+  List, Grid, HardDrive, History,
+  ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
+  Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
+  Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -31,6 +34,10 @@ const Pane = ({
   openInDefaultApp = true
 }) => {
   const getStartFolder = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPath = urlParams.get('path');
+    if (urlPath) return urlPath;
+
     const saved = localStorage.getItem('monkez_start_folder');
     return saved || 'C:\\';
   };
@@ -297,7 +304,9 @@ const Pane = ({
     return target.classList.contains('pane-content-area')
       || target.tagName === 'TABLE'
       || target.tagName === 'TBODY'
-      || target.classList.contains('file-grid');
+      || target.classList.contains('file-grid')
+      || target.classList.contains('empty-folder-message')
+      || target.closest('.empty-folder-message');
   };
 
   const handleAreaContextMenu = (e) => {
@@ -1511,11 +1520,11 @@ const Pane = ({
           </div>
         ) : sortedItems.length === 0 ? (
           loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-inactive)', fontSize: '13px' }}>
+            <div className="empty-folder-message" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-inactive)', fontSize: '13px' }}>
               Scanning folder content...
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-inactive)', fontSize: '13px', fontStyle: 'italic' }}>
+            <div className="empty-folder-message" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-inactive)', fontSize: '13px', fontStyle: 'italic' }}>
               Empty Folder
             </div>
           )
@@ -1656,48 +1665,53 @@ const Pane = ({
           {contextMenu.targetItem ? (
             <>
               <div className="context-menu-item" onClick={() => { handleItemDoubleClick(contextMenu.targetItem); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
-                Open
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ExternalLink size={14} /> <span>Open</span></div>
               </div>
               <div className="context-menu-item" onClick={() => handleRevealInExplorer(contextMenu.targetItem.path)}>
-                Show in Explorer
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Compass size={14} /> <span>Show in Explorer</span></div>
               </div>
               <div className="context-menu-item" onClick={() => handleCopyPath(contextMenu.targetItem.path)}>
-                Copy Path
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy Path</span></div>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleContextMenuAction('copy')}>
-                Copy <span className="context-menu-shortcut">Ctrl+C</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy</span></div>
+                <span className="context-menu-shortcut">Ctrl+C</span>
               </div>
               <div className="context-menu-item" onClick={() => handleContextMenuAction('cut')}>
-                Cut <span className="context-menu-shortcut">Ctrl+X</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Scissors size={14} /> <span>Cut</span></div>
+                <span className="context-menu-shortcut">Ctrl+X</span>
               </div>
               {contextMenu.targetItem.isDirectory && (
                 <>
                   <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}>
-                    Add to Bookmarks
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Bookmark size={14} /> <span>Add to Bookmarks</span></div>
                   </div>
                   <div className="context-menu-item" onClick={() => handleCalculateSize(contextMenu.targetItem)}>
-                    Calculate Folder Size
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calculator size={14} /> <span>Calculate Folder Size</span></div>
                   </div>
                 </>
               )}
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('rename'); }}>
-                Rename <span className="context-menu-shortcut">F2</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Edit size={14} /> <span>Rename</span></div>
+                <span className="context-menu-shortcut">F2</span>
               </div>
               <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }}>
-                Delete <span className="context-menu-shortcut">Del</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Trash2 size={14} /> <span>Delete</span></div>
+                <span className="context-menu-shortcut">Del</span>
               </div>
               <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete-permanent'); }}>
-                Permanent Delete <span className="context-menu-shortcut">Shift+Del</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Trash size={14} /> <span>Permanent Delete</span></div>
+                <span className="context-menu-shortcut">Shift+Del</span>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}>
-                Compress to ZIP
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>Compress to ZIP</span></div>
               </div>
               {contextMenu.targetItem.ext === '.zip' && (
                 <div className="context-menu-item" onClick={() => handleContextMenuAction('unzip')}>
-                  Extract ZIP Here
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>Extract ZIP Here</span></div>
                 </div>
               )}
 
@@ -1707,34 +1721,34 @@ const Pane = ({
                   <div className="context-menu-divider" />
                   {shellApps.terminal.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', contextMenu.targetItem.path)}>
-                      Open Terminal here
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Terminal size={14} /> <span>Open Terminal here</span></div>
                     </div>
                   )}
                   {shellApps.vscode.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', contextMenu.targetItem.path)}>
-                      Open with VS Code
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Code size={14} /> <span>Open with VS Code</span></div>
                     </div>
                   )}
                   {shellApps.antigravity.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', contextMenu.targetItem.path)}>
-                      Open with Antigravity IDE
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Cpu size={14} /> <span>Open with Antigravity IDE</span></div>
                     </div>
                   )}
                   {shellApps.winrar.available && (
                     <>
                       <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'compress', contextMenu.targetItem.path)}>
-                        WinRAR: Compress to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar"
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>WinRAR: Compress to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar"</span></div>
                       </div>
                       {['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
                         <>
                           <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'open', contextMenu.targetItem.path)}>
-                            WinRAR: Open with WinRAR
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>WinRAR: Open with WinRAR</span></div>
                           </div>
                           <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-here', contextMenu.targetItem.path)}>
-                            WinRAR: Extract Here
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>WinRAR: Extract Here</span></div>
                           </div>
                           <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-to', contextMenu.targetItem.path)}>
-                            WinRAR: Extract to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}\"
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>WinRAR: Extract to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}\"</span></div>
                           </div>
                         </>
                       )}
@@ -1746,10 +1760,11 @@ const Pane = ({
           ) : (
             <>
               <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkdir'); }}>
-                New Folder <span className="context-menu-shortcut">F7</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderPlus size={14} /> <span>New Folder</span></div>
+                <span className="context-menu-shortcut">F7</span>
               </div>
               <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkfile'); }}>
-                New File
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FilePlus size={14} /> <span>New File</span></div>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => { 
@@ -1760,29 +1775,29 @@ const Pane = ({
                 if (parts.length > 0) name = parts[parts.length - 1];
                 openModal('bookmark', { name, path: filesData.currentPath }); 
               }}>
-                Add Current Folder to Bookmarks
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Star size={14} /> <span>Add Current Folder to Bookmarks</span></div>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleRevealInExplorer(filesData.currentPath)}>
-                Show in Explorer
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Compass size={14} /> <span>Show in Explorer</span></div>
               </div>
               <div className="context-menu-item" onClick={() => handleCopyPath(filesData.currentPath)}>
-                Copy Path
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy Path</span></div>
               </div>
               <div className="context-menu-divider" />
               {shellApps.terminal.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', filesData.currentPath)}>
-                  Open Terminal here
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Terminal size={14} /> <span>Open Terminal here</span></div>
                 </div>
               )}
               {shellApps.vscode.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', filesData.currentPath)}>
-                  Open Folder in VS Code
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Code size={14} /> <span>Open Folder in VS Code</span></div>
                 </div>
               )}
               {shellApps.antigravity.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', filesData.currentPath)}>
-                  Open Folder in Antigravity IDE
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Cpu size={14} /> <span>Open Folder in Antigravity IDE</span></div>
                 </div>
               )}
               {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available) && (
@@ -1792,11 +1807,12 @@ const Pane = ({
                 className={`context-menu-item ${clipboard.paths.length === 0 ? 'disabled' : ''}`} 
                 onClick={() => { if (clipboard.paths.length > 0) handleContextMenuAction('paste'); }}
               >
-                Paste <span className="context-menu-shortcut">Ctrl+V</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardPaste size={14} /> <span>Paste</span></div>
+                <span className="context-menu-shortcut">Ctrl+V</span>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => { fetchFiles(filesData.currentPath); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
-                Refresh
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><RefreshCw size={14} /> <span>Refresh</span></div>
               </div>
             </>
           )}
