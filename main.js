@@ -1,8 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
-// Start Express backend directly in the main process
-require('./backend/server.js');
 
 let mainWindow = null;
 
@@ -51,6 +49,8 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    // Start Express backend only for the primary instance
+    require('./backend/server.js');
     // Give the Express server a tiny moment (500ms) to start listening
     setTimeout(createWindow, 500);
   });
