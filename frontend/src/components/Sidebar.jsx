@@ -8,7 +8,8 @@ const Sidebar = ({
   onNavigate = () => {},
   onAddBookmark = () => {},
   onDeleteBookmark = () => {},
-  collapsed = false
+  collapsed = false,
+  systemPaths = null
 }) => {
   // Format sizes nicely
   const formatBytes = (bytes) => {
@@ -47,12 +48,31 @@ const Sidebar = ({
     computedPaths.desktop = `${userHome}\\Desktop`;
     computedPaths.documents = `${userHome}\\Documents`;
     computedPaths.downloads = `${userHome}\\Downloads`;
+
+    if (systemPaths && systemPaths.userProfile && systemPaths.userProfile.toLowerCase() === userHome.toLowerCase()) {
+      computedPaths.desktop = systemPaths.desktop;
+      computedPaths.documents = systemPaths.documents;
+      computedPaths.downloads = systemPaths.downloads;
+    } else {
+      // Check if browsing OneDrive folder
+      if (activePanePath.toLowerCase().includes('\\onedrive\\')) {
+        computedPaths.desktop = `${userHome}\\OneDrive\\Desktop`;
+        computedPaths.documents = `${userHome}\\OneDrive\\Documents`;
+      }
+    }
   } else {
-    // Standard system environment fallback (using C:\Users\Public or drive root)
-    computedPaths.home = 'C:\\';
-    computedPaths.desktop = 'C:\\Users';
-    computedPaths.documents = 'C:\\';
-    computedPaths.downloads = 'C:\\';
+    if (systemPaths) {
+      computedPaths.home = systemPaths.userProfile;
+      computedPaths.desktop = systemPaths.desktop;
+      computedPaths.documents = systemPaths.documents;
+      computedPaths.downloads = systemPaths.downloads;
+    } else {
+      // Standard system environment fallback
+      computedPaths.home = 'C:\\';
+      computedPaths.desktop = 'C:\\Users';
+      computedPaths.documents = 'C:\\';
+      computedPaths.downloads = 'C:\\';
+    }
   }
 
   const systemFolders = [

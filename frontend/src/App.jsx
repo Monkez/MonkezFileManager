@@ -86,6 +86,16 @@ const App = () => {
     localStorage.setItem('monkez_start_folder', val);
   };
 
+  const [terminalType, setTerminalType] = useState(() => {
+    const saved = localStorage.getItem('monkez_terminal_type');
+    return saved || 'auto';
+  });
+
+  const handleTerminalTypeChange = (val) => {
+    setTerminalType(val);
+    localStorage.setItem('monkez_terminal_type', val);
+  };
+
   // Global Clipboard state
   const [clipboard, setClipboard] = useState({ paths: [], type: 'copy' });
 
@@ -840,6 +850,7 @@ const App = () => {
           onAddBookmark={handleAddBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           collapsed={!showSidebar}
+          systemPaths={systemPaths}
         />
 
         {/* Sidebar Toggle Edge Handle */}
@@ -992,6 +1003,37 @@ const App = () => {
                 </div>
               </div>
 
+              {/* 4. Terminal Configuration */}
+              <div className="settings-section">
+                <div className="settings-section-title" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+                  Cấu Hình Terminal (Terminal)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Loại terminal mặc định khi mở:</label>
+                  <select 
+                    className="modal-input"
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px', 
+                      fontSize: '12px', 
+                      borderRadius: '4px', 
+                      border: '1px solid var(--border-color)', 
+                      backgroundColor: 'var(--bg-main)', 
+                      color: 'var(--text-main)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                    value={terminalType}
+                    onChange={(e) => handleTerminalTypeChange(e.target.value)}
+                  >
+                    <option value="auto">Tự động phát hiện (Windows Terminal / PowerShell / CMD)</option>
+                    <option value="wt">Windows Terminal (wt.exe)</option>
+                    <option value="powershell">Windows PowerShell (powershell.exe)</option>
+                    <option value="cmd">Command Prompt (cmd.exe)</option>
+                  </select>
+                </div>
+              </div>
+
             </div>
 
             <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1005,10 +1047,12 @@ const App = () => {
                     localStorage.removeItem('monkez_show_hidden');
                     localStorage.removeItem('monkez_open_default_app');
                     localStorage.removeItem('monkez_start_folder');
+                    localStorage.removeItem('monkez_terminal_type');
                     setTheme('dark');
                     setShowHiddenFiles(true);
                     setOpenInDefaultApp(true);
                     setDefaultStartFolder('C:\\');
+                    setTerminalType('auto');
                     alert('Đã khôi phục cài đặt mặc định.');
                   }
                 }}

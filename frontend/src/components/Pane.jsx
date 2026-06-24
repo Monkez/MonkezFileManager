@@ -131,10 +131,14 @@ const Pane = ({
   const handleOpenWith = async (appName, action, targetPath) => {
     setContextMenu(prev => ({ ...prev, isOpen: false }));
     try {
+      const body = { app: appName, action, targetPath };
+      if (appName === 'terminal') {
+        body.terminalType = localStorage.getItem('monkez_terminal_type') || 'auto';
+      }
       const res = await fetch('/api/open-with', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app: appName, action, targetPath })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok) {
@@ -643,6 +647,23 @@ const Pane = ({
         />
       );
     }
+
+    if (item.icon) {
+      return (
+        <img 
+          src={item.icon} 
+          className="file-icon app-icon" 
+          alt="" 
+          draggable={false}
+          style={{
+            width: '16px',
+            height: '16px',
+            objectFit: 'contain'
+          }}
+        />
+      );
+    }
+
     if (genericImages.includes(ext)) return <Image className="file-icon image" size={16} />;
     if (code.includes(ext)) return <FileCode className="file-icon code" size={16} />;
     if (videos.includes(ext)) return <Video className="file-icon video" size={16} />;
@@ -689,6 +710,23 @@ const Pane = ({
             <Video size={16} style={{ color: '#fff' }} />
           </div>
         </div>
+      );
+    }
+
+    if (item.icon) {
+      const iconSize = size === 'small' ? 32 : size === 'medium' ? 48 : 64;
+      return (
+        <img 
+          src={item.icon} 
+          className="grid-item-thumbnail" 
+          alt="" 
+          draggable={false}
+          style={{
+            width: `${iconSize}px`,
+            height: `${iconSize}px`,
+            objectFit: 'contain'
+          }}
+        />
       );
     }
     

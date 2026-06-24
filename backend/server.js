@@ -69,12 +69,22 @@ const isWindows = process.platform === 'win32';
 // Get Resolved System Paths API
 app.get('/api/system-paths', (req, res) => {
   const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
-  const desktop = path.join(userProfile, 'Desktop');
-  const downloads = path.join(userProfile, 'Downloads');
-  const documents = path.join(userProfile, 'Documents');
-  const pictures = path.join(userProfile, 'Pictures');
-  const videos = path.join(userProfile, 'Videos');
-  const music = path.join(userProfile, 'Music');
+
+  const getSystemPath = (folderName) => {
+    // Check if OneDrive folder exists and has this subfolder
+    const onedrivePath = path.join(userProfile, 'OneDrive', folderName);
+    if (fs.existsSync(onedrivePath)) {
+      return onedrivePath;
+    }
+    return path.join(userProfile, folderName);
+  };
+
+  const desktop = getSystemPath('Desktop');
+  const downloads = getSystemPath('Downloads');
+  const documents = getSystemPath('Documents');
+  const pictures = getSystemPath('Pictures');
+  const videos = getSystemPath('Videos');
+  const music = getSystemPath('Music');
   const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
   const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const windowsDir = process.env.SystemRoot || 'C:\\Windows';
@@ -218,8 +228,39 @@ const getFileStats = (fullPath) => {
   }
 };
 
+// Icon Cache and Resolver
+const iconCache = {};
+const isElectronApp = process.versions.electron !== undefined;
+
+const fetchItemIcon = async (fileObj) => {
+  if (fileObj.isDirectory) return;
+
+  const ext = fileObj.ext;
+  const isGenericExtension = ext && !['.exe', '.lnk', '.ico', '.app'].includes(ext);
+
+  if (isGenericExtension && iconCache[ext]) {
+    fileObj.icon = iconCache[ext];
+    return;
+  }
+
+  if (isElectronApp) {
+    try {
+      const { app } = require('electron');
+      const icon = await app.getFileIcon(fileObj.path, { size: 'normal' });
+      const dataUrl = icon.toDataURL();
+
+      if (isGenericExtension) {
+        iconCache[ext] = dataUrl;
+      }
+      fileObj.icon = dataUrl;
+    } catch (err) {
+      // Ignore error and leave icon as null
+    }
+  }
+};
+
 // 2. Directory Listing API
-app.get('/api/files', (req, res) => {
+app.get('/api/files', async (req, res) => {
   let targetPath = req.query.path;
 
   if (!targetPath) {
@@ -232,6 +273,22 @@ app.get('/api/files', (req, res) => {
   }
 
   targetPath = path.resolve(targetPath);
+
+  // Auto-redirect standard profile folders to OneDrive if they don't exist directly
+  if (isWindows && !fs.existsSync(targetPath)) {
+    const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
+    const relative = path.relative(userProfile, targetPath);
+    if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+      const parts = relative.split(path.sep);
+      if (parts.length === 1) {
+        const folderName = parts[0];
+        const onedrivePath = path.join(userProfile, 'OneDrive', folderName);
+        if (fs.existsSync(onedrivePath)) {
+          targetPath = onedrivePath;
+        }
+      }
+    }
+  }
 
   try {
     if (!fs.existsSync(targetPath)) {
@@ -259,7 +316,8 @@ app.get('/api/files', (req, res) => {
         size: stats.size,
         mtime: stats.mtime,
         ext: isDir ? '' : path.extname(item.name).toLowerCase(),
-        isHidden: item.name.startsWith('.') || item.name.startsWith('$')
+        isHidden: item.name.startsWith('.') || item.name.startsWith('$'),
+        icon: null
       };
 
       if (isDir) {
@@ -268,6 +326,9 @@ app.get('/api/files', (req, res) => {
         files.push(fileObj);
       }
     }
+
+    // Fetch icons for all files concurrently
+    await Promise.all(files.map(fetchItemIcon));
 
     // Sort: Folders first, alphabetical
     folders.sort((a, b) => a.name.localeCompare(b.name));
@@ -917,18 +978,39 @@ const recursiveSearch = (dir, query, results = [], maxResults = 100) => {
 };
 
 // 14. Search API
-app.get('/api/search', (req, res) => {
+app.get('/api/search', async (req, res) => {
   const { path: targetPath, query } = req.query;
   if (!targetPath || !query) {
     return res.status(400).json({ error: 'Missing path or query' });
   }
 
-  const resolvedPath = path.resolve(targetPath);
+  let resolvedPath = path.resolve(targetPath);
+
+  // Auto-redirect standard profile folders to OneDrive if they don't exist directly
+  if (isWindows && !fs.existsSync(resolvedPath)) {
+    const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
+    const relative = path.relative(userProfile, resolvedPath);
+    if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+      const parts = relative.split(path.sep);
+      if (parts.length === 1) {
+        const folderName = parts[0];
+        const onedrivePath = path.join(userProfile, 'OneDrive', folderName);
+        if (fs.existsSync(onedrivePath)) {
+          resolvedPath = onedrivePath;
+        }
+      }
+    }
+  }
+
   try {
     if (!fs.existsSync(resolvedPath)) {
       return res.status(404).json({ error: 'Search path does not exist' });
     }
     const results = recursiveSearch(resolvedPath, query);
+    
+    // Fetch icons for all search result items concurrently
+    await Promise.all(results.map(fetchItemIcon));
+    
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1078,6 +1160,15 @@ app.get('/api/foldersize', (req, res) => {
 });
 
 // App detection helpers
+const fileExists = (filePath) => {
+  try {
+    fs.accessSync(filePath, fs.constants.F_OK);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
 const getShellApps = () => {
   const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
   const localAppData = process.env.LOCALAPPDATA || path.join(userProfile, 'AppData\\Local');
@@ -1093,7 +1184,7 @@ const getShellApps = () => {
   ];
   let vscodePath = '';
   for (const p of vsCodePaths) {
-    if (fs.existsSync(p)) {
+    if (fileExists(p)) {
       vscodePath = p;
       break;
     }
@@ -1106,7 +1197,7 @@ const getShellApps = () => {
   ];
   let winrarPath = '';
   for (const p of winrarPaths) {
-    if (fs.existsSync(p)) {
+    if (fileExists(p)) {
       winrarPath = p;
       break;
     }
@@ -1121,7 +1212,7 @@ const getShellApps = () => {
   ];
   let antigravityPath = '';
   for (const p of antigravityPaths) {
-    if (fs.existsSync(p)) {
+    if (fileExists(p)) {
       antigravityPath = p;
       break;
     }
@@ -1134,14 +1225,14 @@ const getShellApps = () => {
   ];
   let wtPath = '';
   for (const p of wtPaths) {
-    if (fs.existsSync(p)) {
+    if (fileExists(p)) {
       wtPath = p;
       break;
     }
   }
 
   return {
-    terminal: { available: true, path: wtPath || 'cmd' },
+    terminal: { available: true, path: wtPath || 'powershell' },
     vscode: { available: vscodePath !== '', path: vscodePath },
     antigravity: { available: antigravityPath !== '', path: antigravityPath },
     winrar: { available: winrarPath !== '', path: winrarPath }
@@ -1160,7 +1251,7 @@ app.get('/api/shell-apps', (req, res) => {
 
 // 18. Open With / Shell launch
 app.post('/api/open-with', (req, res) => {
-  const { app: appName, action, targetPath } = req.body;
+  const { app: appName, action, targetPath, terminalType = 'auto' } = req.body;
   if (!appName || !targetPath) {
     return res.status(400).json({ error: 'Missing app or targetPath' });
   }
@@ -1178,10 +1269,42 @@ app.post('/api/open-with', (req, res) => {
       }
     } catch (e) {}
 
-    if (apps.terminal.path === 'cmd') {
+    // Determine target terminal executable
+    let chosenTerminal = terminalType;
+    if (chosenTerminal === 'auto') {
+      // If auto, use wt if it was detected, otherwise fallback to the path detected by getShellApps
+      if (apps.terminal.path && apps.terminal.path !== 'cmd' && apps.terminal.path !== 'powershell') {
+        chosenTerminal = 'wt';
+      } else {
+        chosenTerminal = apps.terminal.path;
+      }
+    }
+
+    if (chosenTerminal === 'powershell') {
+      cmd = `start powershell -NoExit -Command "cd -LiteralPath '${dirPath.replace(/'/g, "''")}'"`;
+    } else if (chosenTerminal === 'cmd') {
       cmd = `start cmd /k "cd /d ${dirPath}"`;
     } else {
-      cmd = `start "" "${apps.terminal.path}" -d "${dirPath}"`;
+      // Use spawn with a clean environment to ensure Windows Terminal loads the user's default profile
+      // correctly without inheriting node/electron variables that break python/PowerShell configs.
+      const { spawn } = require('child_process');
+      const cleanEnv = { ...process.env };
+      Object.keys(cleanEnv).forEach(k => {
+        if (k.startsWith('npm_') || k.startsWith('NODE_') || k.startsWith('VSCODE_') || 
+            k === 'TERM_PROGRAM' || k === 'TERM_PROGRAM_VERSION' || k === 'INIT_CWD') {
+          delete cleanEnv[k];
+        }
+      });
+      
+      const p = spawn('wt.exe', ['-d', dirPath, 'powershell'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: true,
+        env: cleanEnv
+      });
+      p.unref();
+      console.log(`Spawned wt.exe detached in ${dirPath}`);
+      return res.json({ success: true });
     }
   } else if (appName === 'vscode') {
     const execPath = apps.vscode.available ? `"${apps.vscode.path}"` : 'code';
