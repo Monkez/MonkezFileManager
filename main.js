@@ -18,8 +18,25 @@ function createWindow() {
     }
   });
 
+  // Pass path argument via URL search params
+  const args = process.argv;
+  let targetPath = '';
+  // When launched from registry context menu, it passes the directory path as an argument
+  if (args.length >= 2) {
+    const lastArg = args[args.length - 1];
+    // Simple check: if it doesn't look like an electron switch (--) and it's not the executable path
+    if (!lastArg.startsWith('--') && !lastArg.endsWith('.js') && !lastArg.endsWith('.exe')) {
+      targetPath = lastArg;
+    }
+  }
+
+  const url = new URL('http://localhost:3001');
+  if (targetPath) {
+    url.searchParams.set('path', targetPath);
+  }
+
   // Open the local server URL
-  mainWindow.loadURL('http://localhost:3001');
+  mainWindow.loadURL(url.toString());
 
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -38,7 +55,7 @@ function createWindow() {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  app.quit();
+  app.exit(0);
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
     // Someone tried to run a second instance, we should focus our window.
@@ -60,6 +77,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('quit', () => {
+  // Ensure background Node.js handles (like Express server) are terminated
+  process.exit(0);
 });
 
 // Native file drag-out support

@@ -41,10 +41,22 @@ Sau khi cài đặt xong, bạn có thể khởi chạy ứng dụng:
   ```
   *(Lưu ý: Nếu bạn chỉ muốn khởi chạy trên trình duyệt Web thay vì Electron shell, hãy chạy lệnh `npm run dev`)*.
 
-## 4. Build và Đóng Gói (Packaging)
+## 4. Tích hợp Menu Ngữ Cảnh Windows (Tùy chọn)
 
-Để build ứng dụng thành tệp thực thi di động (`portable exe`) trên Windows:
+Để thêm tùy chọn **"Open with Monkez File Manager"** vào menu chuột phải mặc định của Windows Explorer:
+- Nhấn đúp chuột vào tệp `install-context-menu.bat` ở thư mục gốc (có thể yêu cầu quyền Administrator).
+- Để gỡ bỏ, bạn có thể nhấn đúp vào tệp `uninstall-context-menu.bat`.
 
+## 5. Build và Đóng Gói (Packaging)
+
+Để build ứng dụng thành bộ cài đặt (Installer) trên Windows:
+- Chạy lệnh trong terminal:
+  ```bash
+  npm run build:dist
+  ```
+Bản dựng sẽ được tạo bằng `electron-builder` và lưu trong thư mục `/dist-electron/` bao gồm file cài đặt setup (.exe).
+
+Để build bản chạy ngay không cần cài đặt (`portable exe`):
 - **Cách 1**: Nhấp đúp chuột vào file `build.bat` ở thư mục gốc.
 - **Cách 2**: Chạy lệnh trong terminal:
   ```bash

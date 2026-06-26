@@ -2,6 +2,21 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.3.0] - 25-06-2026
+
+### Thêm Mới
+- **Menu Ngữ Cảnh Động của Windows (Dynamic Context Menu)**: Tích hợp menu chuột phải gốc của Windows (như Git Bash, VS Code...) trực tiếp vào ứng dụng bằng cách đọc Registry. Hỗ trợ trích xuất biểu tượng ứng dụng (.exe) hiển thị trên menu.
+- **Tích Hợp Windows Explorer**: Thêm file cài đặt để đưa tùy chọn "Open with Monkez File Manager" vào menu chuột phải của Windows. Ứng dụng tự động điều hướng tới thư mục được chọn khi khởi động.
+- **Thùng Rác (Recycle Bin)**: Đổi hành vi mặc định của "Xóa" (Delete) thành chuyển vào Thùng Rác hệ thống. Xóa vĩnh viễn (Permanent Delete) được tách thành tùy chọn độc lập.
+- **Bộ Cài Đặt (Installer)**: Tích hợp `electron-builder` để tạo bộ cài đặt NSIS tiêu chuẩn cho Windows.
+- **Chọn Vùng Kéo Thả (Sweep Selection)**: Hỗ trợ dùng chuột drag để tạo vùng chọn bao quát nhiều tệp/thư mục.
+- **Menu Ngữ Cảnh Bookmark**: Cho phép chuột phải vào mục Bookmark để thao tác tiện lợi hơn.
+- **Biểu Tượng Menu Ngữ Cảnh**: Thêm icon minh họa vào các lệnh trên menu chuột phải (Context Menu) giúp nhận diện nhanh chóng.
+
+### Cải Tiến và Sửa Lỗi
+- Đảm bảo tiến trình backend Node.js được tắt hoàn toàn khi đóng cửa sổ chính, tránh treo ngầm.
+- Sắp xếp lại thứ tự các nút chức năng trên thanh công cụ để tối ưu UI/UX.
+
 ## [1.2.3] - 24-06-2026
 
 ### Sửa Lỗi

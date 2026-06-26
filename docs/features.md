@@ -30,13 +30,16 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **Tệp nhị phân & Metadata**: Hiển thị kích thước, ngày sửa đổi, và ngày khởi tạo tệp tin.
 
 ## 6. Menu Chuột Phải Tiện Ích (Context Menu Actions)
+- Mỗi lệnh trong menu chuột phải đều được tích hợp **Icon minh họa** để dễ dàng nhận diện.
 - Bấm chuột phải lên tệp hoặc vùng trống để mở Menu ngữ cảnh:
+  - **Menu Ngữ Cảnh Động Windows (Dynamic Context Menu)**: Ứng dụng tự động đọc Registry của Windows và hiển thị các lệnh chuột phải bên thứ 3 (như Git Bash, VS Code, ứng dụng diệt virus...) với icon nguyên bản (được trích xuất trực tiếp từ file `.exe` bằng Electron).
   - Sao chép đường dẫn tuyệt đối (`Copy Path`).
   - Mở thư mục chứa tệp trong Windows Explorer gốc (`Show in Explorer`).
-  - Xóa vĩnh viễn tệp tin nhanh qua tùy chọn `Permanent Delete` (`Shift+Delete`).
+  - **Xóa (Delete)**: Chuyển tệp tin vào Thùng rác (Recycle Bin) an toàn.
+  - **Xóa Vĩnh Viễn (Permanent Delete)**: Xóa hoàn toàn tệp tin khỏi ổ cứng (`Shift+Delete`).
   - Thao tác nén tệp tin thành định dạng ZIP, giải nén tệp tin ZIP trực tiếp.
   - Tính toán tổng dung lượng của thư mục con đệ quy (quá trình xử lý không đồng bộ hiển thị chi tiết số file/thư mục).
-- Bấm chuột trái vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục (tương tự Windows Explorer).
+- Bấm chuột trái vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục (tương tự Windows Explorer). Hỗ trợ **Sweep Selection** (kéo giữ chuột) để chọn nhanh nhiều tệp tin liên tiếp.
 - Bấm chuột phải vào vùng trống sẽ bỏ chọn tất cả tệp/thư mục trước khi hiển thị menu ngữ cảnh thư mục hiện tại.
 - Nút ⋮ (More) trên thanh điều hướng cho phép mở nhanh menu ngữ cảnh thư mục hiện tại mà không cần chuột phải.
 
@@ -45,13 +48,14 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **VS Code**: Mở file hoặc thư mục trực tiếp bằng Visual Studio Code.
   - **WinRAR**: Thực hiện nén/giải nén nâng cao qua WinRAR nếu máy tính đã cài đặt.
   - **Antigravity IDE**: Tích hợp mở nhanh dự án/file với Antigravity IDE.
-  - **Terminal**: Mở nhanh Windows Terminal hoặc cmd tại đường dẫn hiện tại.
+  - **Terminal**: Mở nhanh Windows Terminal hoặc cmd tại đường dẫn hiện tại (với môi trường không bị xung đột).
+- **Tích Hợp Windows Explorer**: Bằng cách chạy file `install-context-menu.bat`, người dùng có thể thêm mục "Open with Monkez File Manager" vào menu chuột phải của Windows. Khi click, ứng dụng sẽ mở thẳng vào thư mục đó.
 
 ## 8. Quản Lý Drive và Bookmarks
 - Tự động hiển thị các ổ đĩa cục bộ của Windows (C:, D:, E:, v.v.) kèm thanh dung lượng sử dụng trên thanh Sidebar bên trái.
 - Cho phép người dùng đánh dấu (Bookmark) các thư mục quan trọng để truy cập nhanh từ thanh Sidebar hoặc trực tiếp qua **Bookmarks Dropdown** trên thanh công cụ phía trên (Top Toolbar), giúp chuyển nhanh thư mục hoạt động mà không cần mở Sidebar.
 - Tách biệt thành **3 Menu Dropdown riêng biệt** trên thanh công cụ (Top Toolbar):
-  - **Bookmarks** (Icon Ngôi sao): Danh sách các bookmark người dùng lưu tùy chỉnh (hỗ trợ xóa nhanh bằng dấu `x`).
+  - **Bookmarks** (Icon Ngôi sao): Danh sách các bookmark người dùng lưu tùy chỉnh. Bạn có thể bấm **chuột phải** vào một bookmark để thao tác sửa/xóa nâng cao, hoặc xóa nhanh bằng dấu `x`.
   - **Thư mục** (Icon Thư mục): Truy cập nhanh lập tức các thư mục Windows phổ biến: Desktop, Downloads, Documents, Pictures, Videos, Music, User Profile, Program Files, Program Files (x86), Windows (C:\Windows), AppData (Roaming), và Temp.
   - **Công cụ** (Icon Tiện ích): Khởi chạy trực tiếp các công cụ quản trị hệ điều hành dưới nền bằng cách sử dụng luồng chạy độc lập (không gây lỗi GUI): Control Panel, Windows Settings, Add or Remove Programs, Task Manager, Disk Management, Device Manager, Registry Editor, Services, Resource Monitor, Command Prompt (CMD), và PowerShell.
 - Nút **ổ đĩa nhanh (Drive Toolbar)** ở đầu mỗi Pane hiển thị đầy đủ thông tin: nhãn ổ đĩa, biểu tượng, dung lượng trống và tổng dung lượng (ví dụ: `Local Disk (C:) - 45.2 GB trống / 120 GB`).

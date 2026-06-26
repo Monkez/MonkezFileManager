@@ -26,6 +26,7 @@ Dự án được phát triển theo cấu trúc 3 tầng:
 MonkezFileManager/
 ├── backend/               # Mã nguồn Express local server
 │   ├── server.js          # Điểm khởi chạy server & định nghĩa API
+│   ├── contextMenuHelper.js # Module tương tác Registry Windows cho Menu ngữ cảnh
 │   └── package.json       # Dependencies của backend
 ├── frontend/              # Mã nguồn giao diện React
 │   ├── src/               # Các component React & stylesheets

@@ -354,7 +354,7 @@ const App = () => {
     });
   };
 
-  // Listen to global shortcuts (F5, F6) on window object
+  // Listen to global shortcuts (F5, F6, Ctrl+C, Ctrl+X, Ctrl+V) on window object
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       // Check if user is typing in input boxes
@@ -367,6 +367,46 @@ const App = () => {
       } else if (e.key === 'F6') {
         e.preventDefault();
         handleF5F6Shortcut('move');
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+        const activeSelection = paneSelections[activePaneId];
+        if (activeSelection && activeSelection.selectedPaths.length > 0) {
+          fetch('/api/clipboard/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: activeSelection.selectedPaths })
+          }).catch(console.error);
+        }
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'x') {
+        const activeSelection = paneSelections[activePaneId];
+        if (activeSelection && activeSelection.selectedPaths.length > 0) {
+          fetch('/api/clipboard/copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths: activeSelection.selectedPaths })
+          }).catch(console.error);
+          setClipboard({ paths: activeSelection.selectedPaths, type: 'cut' });
+        }
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+        const activeSelection = paneSelections[activePaneId];
+        if (!activeSelection || !activeSelection.currentPath) return;
+
+        fetch('/api/clipboard/read')
+          .then(res => res.json())
+          .then(data => {
+            if (data.paths && data.paths.length > 0) {
+              fetch('/api/copy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sources: data.paths, destinationDir: activeSelection.currentPath })
+              }).then(() => {
+                // Refresh all panes
+                panes.forEach(pane => {
+                  window.dispatchEvent(new CustomEvent(`refresh-pane-${pane.id}`, { detail: { action: 'refresh' } }));
+                });
+              }).catch(console.error);
+            }
+          })
+          .catch(console.error);
       }
     };
 
@@ -414,8 +454,11 @@ const App = () => {
     } else if (type === 'rename') {
       url = '/api/rename';
       body = { currentPath: data.currentPath, oldName: data.oldName, newName: fields.name };
-    } else if (type === 'delete' || type === 'delete-permanent') {
+    } else if (type === 'delete') {
       url = '/api/delete';
+      body = { paths: data.paths };
+    } else if (type === 'delete-permanent') {
+      url = '/api/delete-permanent';
       body = { paths: data.paths };
     } else if (type === 'transfer' || type === 'shortcut-copy' || type === 'shortcut-move') {
       const isCopy = type === 'shortcut-copy' || (type === 'transfer' && fields.action === 'copy');
@@ -1248,7 +1291,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
       case 'mkdir': return 'Create Folder';
       case 'mkfile': return 'Create File';
       case 'rename': return 'Rename Item';
-      case 'delete': return 'Confirm Delete';
+      case 'delete': return 'Move to Recycle Bin';
       case 'delete-permanent': return 'Permanent Delete';
       case 'transfer': return 'Copy / Move Items';
       case 'shortcut-copy': return 'Copy Items';
@@ -1261,7 +1304,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <form 
-        className="modal-content" 
+        className={`modal-content ${type === 'delete-permanent' ? 'delete-permanent-modal' : ''}`} 
         onClick={(e) => e.stopPropagation()} 
         onSubmit={handleSubmit}
       >
@@ -1292,7 +1335,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
                 ? 'Bạn có chắc chắn muốn XÓA VĨNH VIỄN các tập tin/thư mục này không?' 
                 : 'Are you sure you want to delete the following items?'}
             </p>
-            <div style={{ maxHeight: 120, overflowY: 'auto', background: 'rgba(0,0,0,0.3)', padding: 8, borderRadius: 4, marginTop: 8, fontFamily: 'monospace', fontSize: 11 }}>
+            <div className={`delete-paths-list ${type === 'delete-permanent' ? 'permanent' : ''}`}>
               {data.paths.map(p => (
                 <div key={p} style={{ wordBreak: 'break-all', marginBottom: 2 }}>
                   {p}

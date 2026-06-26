@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const { getContextMenu } = require('./contextMenuHelper');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -259,6 +260,39 @@ const fetchItemIcon = async (fileObj) => {
   }
 };
 
+// App Icon Extraction API for Context Menu
+app.get('/api/app-icon', async (req, res) => {
+  let iconPath = req.query.path;
+  if (!iconPath) return res.status(400).send('Path missing');
+  
+  // Clean up things like "C:\App.exe,0" or "%SystemRoot%\system32\imageres.dll,-104"
+  // Expand environment variables
+  iconPath = iconPath.replace(/%([^%]+)%/g, (_, n) => process.env[n] || '');
+  
+  // Remove icon index (e.g., ,0 or ,-104)
+  const commaIndex = iconPath.lastIndexOf(',');
+  if (commaIndex !== -1) {
+    iconPath = iconPath.substring(0, commaIndex);
+  }
+  // Remove quotes
+  iconPath = iconPath.replace(/^["']|["']$/g, '').trim();
+
+  // If using electron, we can extract the icon
+  if (isElectronApp) {
+    try {
+      const { app } = require('electron');
+      const icon = await app.getFileIcon(iconPath, { size: 'small' });
+      const dataUrl = icon.toDataURL();
+      return res.json({ icon: dataUrl });
+    } catch (err) {
+      return res.status(404).json({ error: 'Icon extraction failed' });
+    }
+  } else {
+    // Cannot easily extract EXE icons without electron, return 404 to fallback
+    return res.status(404).json({ error: 'Electron required for icon extraction' });
+  }
+});
+
 // 2. Directory Listing API
 app.get('/api/files', async (req, res) => {
   let targetPath = req.query.path;
@@ -295,21 +329,22 @@ app.get('/api/files', async (req, res) => {
       return res.status(404).json({ error: `Path does not exist: ${targetPath}` });
     }
 
-    const stat = fs.statSync(targetPath);
+    const stat = await fs.promises.stat(targetPath);
     if (!stat.isDirectory()) {
       return res.status(400).json({ error: `Path is not a directory: ${targetPath}` });
     }
 
-    const rawItems = fs.readdirSync(targetPath, { withFileTypes: true });
-    const files = [];
-    const folders = [];
+    const rawItems = await fs.promises.readdir(targetPath, { withFileTypes: true });
 
-    for (const item of rawItems) {
+    const itemPromises = rawItems.map(async (item) => {
       const itemPath = path.join(targetPath, item.name);
       const isDir = item.isDirectory();
-      const stats = getFileStats(itemPath);
+      let stats = { size: 0, mtime: new Date(0), birthtime: new Date(0) };
+      try {
+        stats = await fs.promises.stat(itemPath);
+      } catch (err) {}
 
-      const fileObj = {
+      return {
         name: item.name,
         path: itemPath,
         isDirectory: isDir,
@@ -319,16 +354,14 @@ app.get('/api/files', async (req, res) => {
         isHidden: item.name.startsWith('.') || item.name.startsWith('$'),
         icon: null
       };
+    });
 
-      if (isDir) {
-        folders.push(fileObj);
-      } else {
-        files.push(fileObj);
-      }
-    }
+    const items = await Promise.all(itemPromises);
 
-    // Fetch icons for all files concurrently
-    await Promise.all(files.map(fetchItemIcon));
+    const folders = items.filter(i => i.isDirectory);
+    const files = items.filter(i => !i.isDirectory);
+
+    // Skip heavy icon fetching here for performance. Frontend will lazy load them.
 
     // Sort: Folders first, alphabetical
     folders.sort((a, b) => a.name.localeCompare(b.name));
@@ -378,6 +411,68 @@ app.get('/api/files', async (req, res) => {
       items: []
     });
   }
+});
+
+// OS Clipboard APIs
+app.post('/api/clipboard/copy', (req, res) => {
+  const { paths } = req.body;
+  if (!paths || !Array.isArray(paths) || paths.length === 0) {
+    return res.status(400).json({ error: 'No paths provided' });
+  }
+
+  // Use powershell to set files into Windows clipboard
+  const pathsStr = paths.map(p => `"${p}"`).join(',');
+  const cmd = `powershell -command "Set-Clipboard -Path ${pathsStr}"`;
+  
+  exec(cmd, (error) => {
+    if (error) {
+      console.error('Failed to copy to OS clipboard:', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/clipboard/read', (req, res) => {
+  const cmd = `powershell -command "(Get-Clipboard -Format FileDropList).FullName"`;
+  
+  exec(cmd, (error, stdout) => {
+    if (error) {
+      // It returns error if clipboard doesn't contain FileDropList
+      return res.json({ paths: [] });
+    }
+    
+    // Parse paths from stdout (each line is a path)
+    const paths = stdout.split('\\n').map(p => p.trim()).filter(Boolean);
+    res.json({ paths });
+  });
+});
+
+// File Watcher API (SSE)
+app.get('/api/watch', (req, res) => {
+  const targetPath = req.query.path;
+  if (!targetPath || !fs.existsSync(targetPath)) {
+    return res.status(400).send('Invalid path');
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  let watcher = null;
+  
+  try {
+    watcher = fs.watch(targetPath, (eventType, filename) => {
+      res.write(`data: changed\\n\\n`);
+    });
+  } catch (err) {
+    console.error('Failed to watch directory:', err);
+  }
+
+  req.on('close', () => {
+    if (watcher) watcher.close();
+  });
 });
 
 // 3. Create folder
@@ -443,8 +538,41 @@ app.post('/api/rename', (req, res) => {
 });
 
 // 6. Delete file/folder
-app.post('/api/delete', (req, res) => {
-  const { paths } = req.body; // Expects array of paths
+app.post('/api/delete', async (req, res) => {
+  const { paths } = req.body;
+  if (!paths || !Array.isArray(paths)) {
+    return res.status(400).json({ error: 'Paths must be an array' });
+  }
+
+  const errors = [];
+  const isElectron = process.versions.electron !== undefined;
+  
+  for (const itemPath of paths) {
+    try {
+      if (fs.existsSync(itemPath)) {
+        if (isElectron) {
+          const { shell } = require('electron');
+          await shell.trashItem(itemPath);
+        } else {
+          // Fallback to permanent delete if not running in electron
+          fs.rmSync(itemPath, { recursive: true, force: true });
+        }
+      }
+    } catch (err) {
+      errors.push({ path: itemPath, error: err.message });
+    }
+  }
+
+  if (errors.length > 0) {
+    res.status(207).json({ success: false, errors });
+  } else {
+    res.json({ success: true });
+  }
+});
+
+// 6b. Delete Permanent file/folder
+app.post('/api/delete-permanent', (req, res) => {
+  const { paths } = req.body;
   if (!paths || !Array.isArray(paths)) {
     return res.status(400).json({ error: 'Paths must be an array' });
   }
@@ -1249,6 +1377,71 @@ app.get('/api/shell-apps', (req, res) => {
   }
 });
 
+// 17.5 Get Dynamic Context Menu from Registry
+app.get('/api/context-menu', (req, res) => {
+  const targetPath = req.query.path;
+  if (!targetPath) {
+    return res.status(400).json({ error: 'Missing path' });
+  }
+  
+  getContextMenu(targetPath, async (err, items) => {
+    if (err) {
+      console.error('Context menu error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    
+    // Process icons using Electron's getFileIcon if available
+    const processedItems = [];
+    try {
+      for (const item of items) {
+        let iconBase64 = null;
+        let iconPath = item.icon || item.Icon;
+        const cmd = item.command || item.Command;
+        const name = item.name || item.Name || '';
+        const id = item.id || item.Id;
+        
+        // If no icon explicitly set, try to use the executable from the command
+        if (!iconPath && cmd) {
+          const match = cmd.match(/"([^"]+\.exe)"/i) || cmd.match(/([^ ]+\.exe)/i);
+          if (match) {
+            iconPath = match[1];
+          }
+        }
+        
+        // Clean up icon path (e.g., C:\path\icon.ico,0 -> C:\path\icon.ico)
+        if (iconPath && typeof iconPath === 'string') {
+          const commaIdx = iconPath.lastIndexOf(',');
+          if (commaIdx !== -1) {
+            iconPath = iconPath.substring(0, commaIdx);
+          }
+          iconPath = iconPath.replace(/"/g, '').trim();
+        }
+
+        if (isElectronApp && iconPath && fs.existsSync(iconPath)) {
+          try {
+            const { app } = require('electron');
+            const icon = await app.getFileIcon(iconPath, { size: 'normal' });
+            iconBase64 = icon.toDataURL();
+          } catch (e) {
+            // Ignore
+          }
+        }
+        
+        processedItems.push({
+          id: id,
+          name: typeof name === 'string' ? name.replace(/&/g, '') : String(name), // Remove Windows accelerator ampersands
+          icon: iconBase64,
+          command: cmd
+        });
+      }
+      res.json(processedItems);
+    } catch (processErr) {
+      console.error('Error processing context menu items:', processErr);
+      res.status(500).json({ error: processErr.message });
+    }
+  });
+});
+
 // 18. Open With / Shell launch
 app.post('/api/open-with', (req, res) => {
   const { app: appName, action, targetPath, terminalType = 'auto' } = req.body;
@@ -1342,6 +1535,15 @@ app.post('/api/open-with', (req, res) => {
     } else {
       return res.status(400).json({ error: 'Unknown WinRAR action' });
     }
+  } else if (appName === 'dynamic') {
+    const { dynamicCommand } = req.body;
+    if (!dynamicCommand) {
+      return res.status(400).json({ error: 'Missing dynamicCommand' });
+    }
+    // Replace %1 or "%1" with the targetPath. Note: command usually has "%1"
+    let finalCmd = dynamicCommand.replace(/"%1"/g, `"${targetPath}"`);
+    finalCmd = finalCmd.replace(/%1/g, `"${targetPath}"`);
+    cmd = `start "" ${finalCmd}`;
   } else {
     return res.status(400).json({ error: 'Unknown app name' });
   }

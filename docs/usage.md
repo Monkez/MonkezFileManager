@@ -37,7 +37,7 @@ Khi chọn tệp tin và thực hiện thao tác:
 | **Ctrl + X** | Cut | Cắt các tệp được chọn vào clipboard (chữ đỏ) |
 | **Ctrl + V** | Paste | Dán các tệp từ clipboard vào thư mục hiện tại |
 | **F2** | Đổi tên | Đổi tên tệp hoặc thư mục đang chọn |
-| **Delete** | Xóa | Xóa vĩnh viễn tệp hoặc thư mục đang chọn |
+| **Delete** | Xóa | Chuyển tệp hoặc thư mục đang chọn vào Thùng Rác |
 | **Shift + Delete** | Xóa vĩnh viễn | Mở hộp thoại xác nhận xóa vĩnh viễn các tệp đã chọn |
 | **Shift + Lên/Xuống** | Chọn nhiều tệp | Mở rộng vùng chọn tệp tin lên/xuống |
 | **F5** | Copy to Target | Copy nhanh các tệp chọn sang khung hình lân cận |

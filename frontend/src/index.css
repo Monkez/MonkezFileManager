@@ -1652,3 +1652,49 @@ body {
   color: var(--accent-color);
   font-weight: 600;
 }
+
+
+.context-submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 2px;
+  width: max-content;
+  min-width: 150px;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .context-submenu {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.has-submenu {
+  position: relative;
+  justify-content: space-between;
+}
+
+/* Permanent Delete Modal Styles */
+.delete-permanent-modal {
+  border: 2px solid var(--danger-color) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+.delete-paths-list {
+  max-height: 120px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.3);
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.delete-paths-list.permanent {
+  color: var(--danger-color);
+  font-weight: bold;
+}

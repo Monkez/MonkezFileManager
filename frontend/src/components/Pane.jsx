@@ -112,6 +112,40 @@ const Pane = ({
 
 
   // Custom Context Menu State
+
+  const [loadingContextMenu, setLoadingContextMenu] = useState(false);
+  const [dynamicMenuItems, setDynamicMenuItems] = useState([]);
+  const [showDynamicSubmenu, setShowDynamicSubmenu] = useState(false);
+  const [showWinrarSubmenu, setShowWinrarSubmenu] = useState(false);
+  const winrarSubmenuRef = useRef(null);
+  const submenuRef = useRef(null);
+  const getSubmenuStyle = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const style = { position: 'absolute' };
+    
+    // Vertical positioning: if in the bottom half, expand upwards
+    if (rect.top > window.innerHeight / 2) {
+      style.bottom = 0;
+      style.top = 'auto';
+    } else {
+      style.top = 0;
+      style.bottom = 'auto';
+    }
+    
+    // Horizontal positioning: if too close to right edge, expand leftwards
+    if (rect.right + 250 > window.innerWidth) {
+      style.left = 'auto';
+      style.right = '100%';
+    } else {
+      style.left = '100%';
+      style.right = 'auto';
+    }
+    return style;
+  };
+  
+  const [submenuDynamicStyle, setSubmenuDynamicStyle] = useState({ position: 'absolute', left: '100%', top: 0 });
+  const [winrarSubmenuDynamicStyle, setWinrarSubmenuDynamicStyle] = useState({ position: 'absolute', left: '100%', top: 0 });
+
   const [contextMenu, setContextMenu] = useState({
     isOpen: false,
     x: 0,
@@ -277,7 +311,24 @@ const Pane = ({
         menuEl.style.left = `${adjustedX}px`;
       }
     }
-  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y]);
+  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y, dynamicMenuItems, showWinrarSubmenu, showDynamicSubmenu]);
+
+
+  const fetchContextMenu = async (targetPath) => {
+    setLoadingContextMenu(true);
+    setDynamicMenuItems([]);
+    try {
+      const res = await fetch(`/api/context-menu?path=${encodeURIComponent(targetPath)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDynamicMenuItems(data.items || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch context menu:', err);
+    } finally {
+      setLoadingContextMenu(false);
+    }
+  };
 
   const handleRowContextMenu = (item, idx, e) => {
     e.preventDefault();
@@ -520,6 +571,29 @@ const Pane = ({
   useEffect(() => {
     fetchFiles(activeTab.path);
   }, [activeTab.path]);
+
+  // File Watcher (SSE)
+  useEffect(() => {
+    if (!filesData.currentPath) return;
+
+    const eventSource = new EventSource(`/api/watch?path=${encodeURIComponent(filesData.currentPath)}`);
+    
+    let debounceTimer;
+    eventSource.onmessage = (e) => {
+      if (e.data === 'changed') {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          // Re-fetch files for the current path
+          fetchFiles(filesData.currentPath);
+        }, 500);
+      }
+    };
+
+    return () => {
+      clearTimeout(debounceTimer);
+      eventSource.close();
+    };
+  }, [filesData.currentPath]);
 
   // Save current path to localStorage for session restoring
   useEffect(() => {
