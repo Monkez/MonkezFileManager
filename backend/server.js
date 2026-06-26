@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
 const { exec } = require('child_process');
 const { getContextMenu } = require('./contextMenuHelper');
 
@@ -293,6 +295,45 @@ app.get('/api/app-icon', async (req, res) => {
   }
 });
 
+// File Icon Extraction API
+app.get('/api/file-icon', async (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) return res.status(400).send('Path missing');
+
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    const isGenericExtension = ext && !['.exe', '.lnk', '.ico', '.app'].includes(ext);
+
+    // If cached, return it
+    if (isGenericExtension && iconCache[ext]) {
+      const base64Data = iconCache[ext].replace(/^data:image\/\w+;base64,/, "");
+      const imgBuffer = Buffer.from(base64Data, 'base64');
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      return res.send(imgBuffer);
+    }
+
+    if (isElectronApp) {
+      const { app: electronApp } = require('electron');
+      const icon = await electronApp.getFileIcon(filePath, { size: 'normal' });
+      const imgBuffer = icon.toPNG(); // Get raw PNG buffer directly
+
+      if (isGenericExtension) {
+        iconCache[ext] = icon.toDataURL();
+      }
+
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(imgBuffer);
+    } else {
+      return res.status(404).send('Not supported');
+    }
+  } catch (err) {
+    console.error('Error fetching file icon:', err);
+    return res.status(500).send(err.message);
+  }
+});
+
 // 2. Directory Listing API
 app.get('/api/files', async (req, res) => {
   let targetPath = req.query.path;
@@ -420,21 +461,39 @@ app.post('/api/clipboard/copy', (req, res) => {
     return res.status(400).json({ error: 'No paths provided' });
   }
 
-  // Use powershell to set files into Windows clipboard
-  const pathsStr = paths.map(p => `"${p}"`).join(',');
-  const cmd = `powershell -command "Set-Clipboard -Path ${pathsStr}"`;
-  
-  exec(cmd, (error) => {
-    if (error) {
-      console.error('Failed to copy to OS clipboard:', error);
-      return res.status(500).json({ success: false, error: error.message });
-    }
-    res.json({ success: true });
-  });
+  // Create a unique temporary file to pass paths safely to PowerShell
+  const tempFile = path.join(os.tmpdir(), `monkez_cb_${crypto.randomBytes(6).toString('hex')}.txt`);
+
+  try {
+    fs.writeFileSync(tempFile, paths.join('\r\n'), 'utf8');
+
+    // Use powershell -LiteralPath with Get-Content to copy files to clipboard
+    const cmd = `powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Set-Clipboard -LiteralPath (Get-Content -LiteralPath '${tempFile.replace(/'/g, "''")}' -Encoding utf8)"`;
+
+    exec(cmd, (error) => {
+      // Clean up the temp file
+      try {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      } catch (unlinkErr) {
+        console.error('Failed to delete temporary clipboard file:', unlinkErr);
+      }
+
+      if (error) {
+        console.error('Failed to copy to OS clipboard:', error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+      res.json({ success: true });
+    });
+  } catch (err) {
+    console.error('Failed to write temporary clipboard file:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get('/api/clipboard/read', (req, res) => {
-  const cmd = `powershell -command "(Get-Clipboard -Format FileDropList).FullName"`;
+  const cmd = `powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; (Get-Clipboard -Format FileDropList).FullName"`;
   
   exec(cmd, (error, stdout) => {
     if (error) {
@@ -442,8 +501,8 @@ app.get('/api/clipboard/read', (req, res) => {
       return res.json({ paths: [] });
     }
     
-    // Parse paths from stdout (each line is a path)
-    const paths = stdout.split('\\n').map(p => p.trim()).filter(Boolean);
+    // Parse paths from stdout (each line is a path, outputted in UTF-8)
+    const paths = stdout.split(/\r?\n/).map(p => p.trim()).filter(Boolean);
     res.json({ paths });
   });
 });

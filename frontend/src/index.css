@@ -50,8 +50,8 @@
   
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
 }
 
 * {
@@ -691,7 +691,8 @@ body {
 .breadcrumb-segment {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-main);
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
@@ -832,6 +833,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-main) !important;
+  font-weight: 500;
+}
+
+.file-item-name-cell .sidebar-item-text {
+  color: var(--text-main) !important;
 }
 
 .file-icon {

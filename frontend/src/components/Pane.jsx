@@ -17,6 +17,49 @@ const formatBytes = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
+const FileIconImage = ({ path, fallback }) => {
+  const [error, setError] = useState(false);
+
+  if (error) return fallback;
+
+  return (
+    <img
+      src={`/api/file-icon?path=${encodeURIComponent(path)}`}
+      className="file-icon app-icon"
+      alt=""
+      onError={() => setError(true)}
+      draggable={false}
+      style={{
+        width: '16px',
+        height: '16px',
+        objectFit: 'contain'
+      }}
+    />
+  );
+};
+
+const GridItemIconImage = ({ path, size, fallback }) => {
+  const [error, setError] = useState(false);
+  const iconSize = size === 'small' ? 32 : size === 'medium' ? 48 : 64;
+
+  if (error) return fallback;
+
+  return (
+    <img
+      src={`/api/file-icon?path=${encodeURIComponent(path)}`}
+      className="grid-item-thumbnail"
+      alt=""
+      onError={() => setError(true)}
+      draggable={false}
+      style={{
+        width: `${iconSize}px`,
+        height: `${iconSize}px`,
+        objectFit: 'contain'
+      }}
+    />
+  );
+};
+
 const Pane = ({
   paneId,
   isActive,
@@ -778,16 +821,24 @@ const Pane = ({
     });
   };
 
+  // File Icon resolver fallback (returns a Lucide icon component)
+  const getFileIconFallback = (ext) => {
+    const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
+    const videos = ['.mp4', '.webm', '.avi', '.mkv'];
+    const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
+
+    if (code.includes(ext)) return <FileCode className="file-icon code" size={16} />;
+    if (videos.includes(ext)) return <Video className="file-icon video" size={16} />;
+    if (audio.includes(ext)) return <Music className="file-icon audio" size={16} />;
+    return <File className="file-icon file" size={16} />;
+  };
+
   // File Icon resolver
   const getFileIcon = (item) => {
     if (item.isDirectory) return <Folder className="file-icon folder" size={16} />;
     
     const ext = item.ext;
     const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg'];
-    const genericImages = [];
-    const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
-    const videos = ['.mp4', '.webm', '.avi', '.mkv'];
-    const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
 
     if (thumbnailImages.includes(ext)) {
       return (
@@ -823,12 +874,17 @@ const Pane = ({
       );
     }
 
-    if (genericImages.includes(ext)) return <Image className="file-icon image" size={16} />;
-    if (code.includes(ext)) return <FileCode className="file-icon code" size={16} />;
-    if (videos.includes(ext)) return <Video className="file-icon video" size={16} />;
-    if (audio.includes(ext)) return <Music className="file-icon audio" size={16} />;
-    
-    return <File className="file-icon file" size={16} />;
+    // Try loading system icon, fallback to Lucide icon if it fails
+    return <FileIconImage path={item.path} fallback={getFileIconFallback(ext)} />;
+  };
+
+  const getGridItemFallback = (ext, iconSize) => {
+    const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
+    const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
+
+    if (code.includes(ext)) return <FileCode className="file-icon code" size={iconSize} />;
+    if (audio.includes(ext)) return <Music className="file-icon audio" size={iconSize} />;
+    return <File className="file-icon file" size={iconSize} />;
   };
 
   // Grid Item Media/Icon resolver
@@ -840,7 +896,6 @@ const Pane = ({
     
     const ext = item.ext;
     const thumbnailImages = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg'];
-    const genericImages = [];
     const videos = ['.mp4', '.webm', '.avi', '.mkv'];
 
     if (thumbnailImages.includes(ext)) {
@@ -890,14 +945,7 @@ const Pane = ({
     }
     
     const iconSize = size === 'small' ? 32 : size === 'medium' ? 48 : 64;
-    const code = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.sh', '.cpp', '.cs', '.go'];
-    const audio = ['.mp3', '.wav', '.ogg', '.m4a'];
-
-    if (genericImages.includes(ext)) return <Image className="file-icon image" size={iconSize} />;
-    if (code.includes(ext)) return <FileCode className="file-icon code" size={iconSize} />;
-    if (audio.includes(ext)) return <Music className="file-icon audio" size={iconSize} />;
-    
-    return <File className="file-icon file" size={iconSize} />;
+    return <GridItemIconImage path={item.path} size={size} fallback={getGridItemFallback(ext, iconSize)} />;
   };
 
   // Size formatter
