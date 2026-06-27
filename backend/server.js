@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { getContextMenu } = require('./contextMenuHelper');
 
 const app = express();
@@ -68,6 +68,106 @@ const getBookmarksFile = () => {
 
 // Helper to check if running on Windows
 const isWindows = process.platform === 'win32';
+
+// ----------------------------------------------------
+// Real-time Drive Plug/Unplug Detector (Windows WMI)
+// ----------------------------------------------------
+let driveWatcherProcess = null;
+const driveClients = new Set();
+
+const startDriveWatcher = () => {
+  if (!isWindows) return;
+  if (driveWatcherProcess) return;
+
+  const psCmd = `
+    $ErrorActionPreference = 'Stop'
+    try {
+      Register-WmiEvent -Class Win32_VolumeChangeEvent -SourceIdentifier "USBChange" -Action {
+        $evt = $Event.SourceEventArgs.NewEvent
+        Write-Host "VOLUME_CHANGE:$($evt.EventType):$($evt.DriveName)"
+        [System.Console]::Out.Flush()
+      }
+      Write-Host "WMI_LISTENER_STARTED"
+      [System.Console]::Out.Flush()
+      while ($true) {
+        Start-Sleep -Seconds 1
+      }
+    } catch {
+      Write-Host "ERROR:$($_.Exception.Message)"
+      [System.Console]::Out.Flush()
+    }
+  `;
+
+  try {
+    driveWatcherProcess = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', psCmd]);
+
+    driveWatcherProcess.stdout.on('data', (data) => {
+      const output = data.toString('utf8');
+      const lines = output.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('VOLUME_CHANGE:')) {
+          const parts = trimmed.split(':');
+          const eventType = parts[1]; // '2' plugged, '3' unplugged
+          const driveName = parts[2]; // e.g. 'E:'
+          
+          console.log(`[DriveWatcher] Event: Type=${eventType}, Drive=${driveName}`);
+          
+          const payload = JSON.stringify({ eventType, driveName });
+          for (const client of driveClients) {
+            try {
+              client.write(`data: ${payload}\n\n`);
+            } catch (err) {
+              console.error('[DriveWatcher] Failed to write to client:', err.message);
+            }
+          }
+        } else if (trimmed.startsWith('ERROR:')) {
+          console.error('[DriveWatcher] PowerShell inner error:', trimmed);
+        }
+      }
+    });
+
+    driveWatcherProcess.stderr.on('data', (data) => {
+      console.error('[DriveWatcher] stderr:', data.toString().trim());
+    });
+
+    driveWatcherProcess.on('error', (err) => {
+      console.error('[DriveWatcher] Failed to start process:', err);
+    });
+
+    driveWatcherProcess.on('exit', (code) => {
+      console.log(`[DriveWatcher] Process exited with code ${code}`);
+      driveWatcherProcess = null;
+      // Restart watcher if we still have active connections
+      if (driveClients.size > 0) {
+        console.log('[DriveWatcher] Restarting in 5 seconds...');
+        setTimeout(startDriveWatcher, 5000);
+      }
+    });
+  } catch (err) {
+    console.error('[DriveWatcher] Spawn exception:', err);
+  }
+};
+
+const stopDriveWatcher = () => {
+  if (driveWatcherProcess) {
+    try {
+      driveWatcherProcess.kill();
+    } catch (e) {}
+      driveWatcherProcess = null;
+  }
+};
+
+// Ensure background processes are cleaned up when Node exits
+process.on('exit', stopDriveWatcher);
+process.on('SIGINT', () => {
+  stopDriveWatcher();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  stopDriveWatcher();
+  process.exit(0);
+});
 
 // Get Resolved System Paths API
 app.get('/api/system-paths', (req, res) => {
@@ -164,6 +264,28 @@ app.post('/api/launch-tool', (req, res) => {
 
   // Return success immediately to the client
   res.json({ success: true });
+});
+
+// Watch logical drives endpoint (SSE)
+app.get('/api/watch-drives', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  driveClients.add(res);
+  console.log(`[DriveWatcher] Client connected. Total: ${driveClients.size}`);
+
+  // Ensure watcher process is running
+  startDriveWatcher();
+
+  req.on('close', () => {
+    driveClients.delete(res);
+    console.log(`[DriveWatcher] Client disconnected. Total: ${driveClients.size}`);
+    if (driveClients.size === 0) {
+      stopDriveWatcher();
+    }
+  });
 });
 
 // 1. Get Drives API
@@ -520,17 +642,62 @@ app.get('/api/watch', (req, res) => {
   res.flushHeaders();
 
   let watcher = null;
-  
+  let isClosed = false;
+
+  const cleanup = () => {
+    if (isClosed) return;
+    isClosed = true;
+    if (watcher) {
+      try {
+        watcher.close();
+      } catch (err) {}
+      watcher = null;
+    }
+    try {
+      res.end();
+    } catch (err) {}
+  };
+
   try {
     watcher = fs.watch(targetPath, (eventType, filename) => {
-      res.write(`data: changed\\n\\n`);
+      if (isClosed) return;
+
+      // Verify if path still exists
+      fs.access(targetPath, fs.constants.F_OK, (err) => {
+        if (err) {
+          // Folder deleted/unplugged
+          try {
+            res.write(`data: ${JSON.stringify({ event: 'deleted' })}\n\n`);
+          } catch (writeErr) {}
+          cleanup();
+          return;
+        }
+
+        // Folder still exists, normal change
+        try {
+          res.write(`data: ${JSON.stringify({ event: 'changed', fileEvent: eventType, filename })}\n\n`);
+        } catch (writeErr) {}
+      });
     });
+
+    watcher.on('error', (err) => {
+      console.error(`Watcher error for path ${targetPath}:`, err.message);
+      try {
+        res.write(`data: ${JSON.stringify({ event: 'deleted', error: err.message })}\n\n`);
+      } catch (writeErr) {}
+      cleanup();
+    });
+
   } catch (err) {
     console.error('Failed to watch directory:', err);
+    try {
+      res.write(`data: ${JSON.stringify({ event: 'error', message: err.message })}\n\n`);
+    } catch (writeErr) {}
+    cleanup();
   }
 
   req.on('close', () => {
-    if (watcher) watcher.close();
+    cleanup();
   });
 });
 

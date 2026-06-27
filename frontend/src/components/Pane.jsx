@@ -2,11 +2,12 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
-  X, AlertTriangle, ChevronRight, MoreVertical,
-  List, Grid, HardDrive, History,
+  X, AlertTriangle, ChevronRight, ChevronLeft, MoreVertical,
+  List, Grid, HardDrive, History, Pin,
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
-  Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star
+  Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
+  Home, Monitor, Download
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -15,6 +16,29 @@ const formatBytes = (bytes) => {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getTabIcon = (path) => {
+  if (!path) return <Folder size={12} style={{ color: '#eab308', fill: '#eab308', opacity: 0.8 }} />;
+  
+  const lower = path.toLowerCase();
+  
+  // Root drive paths (e.g. C:\, D:\, E:\)
+  if (/^[a-z]:\\?$/i.test(lower)) {
+    return <HardDrive size={12} />;
+  }
+  
+  // Check system folders based on trailing name
+  if (lower.endsWith('\\desktop')) return <Monitor size={12} />;
+  if (lower.endsWith('\\downloads')) return <Download size={12} />;
+  if (lower.endsWith('\\documents')) return <FileText size={12} />;
+  if (lower.endsWith('\\pictures')) return <Image size={12} style={{ color: '#3b82f6' }} />;
+  if (lower.endsWith('\\videos')) return <Video size={12} style={{ color: '#10b981' }} />;
+  if (lower.endsWith('\\music')) return <Music size={12} style={{ color: '#ec4899' }} />;
+  if (lower.includes('\\users\\') && lower.split('\\').length === 3) return <Home size={12} />;
+  
+  // Generic folder fallback
+  return <Folder size={12} style={{ color: '#eab308', fill: '#eab308', opacity: 0.8 }} />;
 };
 
 const FileIconImage = ({ path, fallback }) => {
@@ -87,17 +111,60 @@ const Pane = ({
 
   const initialPath = getStartFolder();
 
-  // Tabs and Navigation state
-  const [tabs, setTabs] = useState([
-    {
-      id: 'tab-1',
-      name: initialPath === 'C:\\' ? 'Local Disk (C:)' : initialPath.split('\\').filter(Boolean).pop() || initialPath,
-      path: initialPath,
-      history: [initialPath],
-      historyIndex: 0
+  // Load initial tabs: load pinned tabs if they exist, otherwise load a single default tab
+  const getInitialTabs = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPath = urlParams.get('path');
+    if (urlPath) {
+      return [
+        {
+          id: 'tab-1',
+          name: urlPath === 'C:\\' ? 'Local Disk (C:)' : urlPath.split('\\').filter(Boolean).pop() || urlPath,
+          path: urlPath,
+          history: [urlPath],
+          historyIndex: 0,
+          isPinned: false
+        }
+      ];
     }
-  ]);
-  const [activeTabId, setActiveTabId] = useState('tab-1');
+
+    const savedPinned = localStorage.getItem(`monkez_pinned_tabs_${paneId}`);
+    if (savedPinned) {
+      try {
+        const pinnedList = JSON.parse(savedPinned);
+        if (Array.isArray(pinnedList) && pinnedList.length > 0) {
+          return pinnedList.map((item, idx) => ({
+            id: item.id || `tab-pinned-${idx}-${Date.now()}`,
+            name: item.name,
+            path: item.path,
+            history: [item.path],
+            historyIndex: 0,
+            isPinned: true
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to parse pinned tabs:', err);
+      }
+    }
+
+    return [
+      {
+        id: 'tab-1',
+        name: initialPath === 'C:\\' ? 'Local Disk (C:)' : initialPath.split('\\').filter(Boolean).pop() || initialPath,
+        path: initialPath,
+        history: [initialPath],
+        historyIndex: 0,
+        isPinned: false
+      }
+    ];
+  };
+
+  // Tabs and Navigation state
+  const [tabs, setTabs] = useState(() => getInitialTabs());
+  const [activeTabId, setActiveTabId] = useState(() => {
+    const initial = getInitialTabs();
+    return initial[0]?.id || 'tab-1';
+  });
 
   const [restorablePath, setRestorablePath] = useState(() => {
     return localStorage.getItem('monkez_last_path_' + paneId);
@@ -313,6 +380,22 @@ const Pane = ({
   };
 
   const paneRef = useRef(null);
+  const tabsListRef = useRef(null);
+
+  const scrollTabsLeft = (e) => {
+    e.stopPropagation();
+    if (tabsListRef.current) {
+      tabsListRef.current.scrollBy({ left: -120, behavior: 'smooth' });
+    }
+  };
+
+  const scrollTabsRight = (e) => {
+    e.stopPropagation();
+    if (tabsListRef.current) {
+      tabsListRef.current.scrollBy({ left: 120, behavior: 'smooth' });
+    }
+  };
+
   const contextMenuRef = useRef(null);
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
 
@@ -623,20 +706,42 @@ const Pane = ({
     
     let debounceTimer;
     eventSource.onmessage = (e) => {
-      if (e.data === 'changed') {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          // Re-fetch files for the current path
-          fetchFiles(filesData.currentPath);
-        }, 500);
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload.event === 'changed') {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchFiles(filesData.currentPath);
+          }, 500);
+        } else if (payload.event === 'deleted') {
+          clearTimeout(debounceTimer);
+          console.warn('Folder was deleted or is no longer accessible:', filesData.currentPath);
+          
+          // Redirect the user to the parent path (if available) or default 'C:\'
+          const fallbackPath = filesData.parentPath || 'C:\\';
+          alert(`Thư mục hiện tại không còn khả dụng (bị xóa hoặc rút thiết bị). Trở lại: ${fallbackPath}`);
+          navigateTo(fallbackPath);
+        }
+      } catch (err) {
+        // Fallback for legacy plain text messages
+        if (e.data === 'changed') {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchFiles(filesData.currentPath);
+          }, 500);
+        }
       }
+    };
+
+    eventSource.onerror = (err) => {
+      console.warn('File watcher SSE connection issue:', err);
     };
 
     return () => {
       clearTimeout(debounceTimer);
       eventSource.close();
     };
-  }, [filesData.currentPath]);
+  }, [filesData.currentPath, filesData.parentPath, activeTabId]);
 
   // Save current path to localStorage for session restoring
   useEffect(() => {
@@ -732,15 +837,35 @@ const Pane = ({
     }
   };
 
+  // Save pinned tabs to localStorage whenever they change
+  useEffect(() => {
+    const pinned = tabs
+      .filter(t => t.isPinned)
+      .map(t => ({ id: t.id, name: t.name, path: t.path }));
+    localStorage.setItem(`monkez_pinned_tabs_${paneId}`, JSON.stringify(pinned));
+  }, [tabs, paneId]);
+
+  const togglePinTab = (tabId, e) => {
+    e.stopPropagation();
+    setTabs(prev => prev.map(t => {
+      if (t.id === tabId) {
+        return { ...t, isPinned: !t.isPinned };
+      }
+      return t;
+    }));
+  };
+
   // Tabs management
   const addTab = (path = 'C:\\') => {
     const newId = `tab-${Date.now()}`;
+    const folderName = path === 'C:\\' ? 'Local Disk (C:)' : path.split('\\').filter(Boolean).pop() || path;
     const newTab = {
       id: newId,
-      name: 'Local Disk (C:)',
+      name: folderName,
       path: path,
       history: [path],
-      historyIndex: 0
+      historyIndex: 0,
+      isPinned: false
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
@@ -1362,35 +1487,132 @@ const Pane = ({
       style={{ outline: 'none' }}
       onContextMenu={handleAreaContextMenu}
     >
+      {/* Pane specific Drives Letter list toolbar */}
+      <div className="drive-letter-toolbar">
+        {drives.map((drive) => {
+          const letter = drive.DeviceID;
+          const isActiveDrive = filesData.currentPath.toLowerCase().startsWith(letter.toLowerCase());
+          
+          const size = Number(drive.Size) || 0;
+          const free = Number(drive.FreeSpace) || 0;
+          const used = size - free;
+          const percentUsed = size > 0 ? (used / size) * 100 : 0;
+          
+          // Determine color scheme based on space usage
+          let color = '#3b82f6'; // Blue for low usage (<50%)
+          let bg = isActiveDrive ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.04)';
+          let border = isActiveDrive ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.2)';
+          
+          if (size > 0) {
+            if (percentUsed > 80) {
+              color = '#ef4444'; // Red for critical usage (>80%)
+              bg = isActiveDrive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.05)';
+              border = isActiveDrive ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.25)';
+            } else if (percentUsed > 50) {
+              color = '#f59e0b'; // Amber/Yellow for warning usage (50%-80%)
+              bg = isActiveDrive ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.05)';
+              border = isActiveDrive ? 'rgba(245, 158, 11, 0.6)' : 'rgba(245, 158, 11, 0.25)';
+            }
+          }
+          
+          const driveStyleVars = {
+            '--drive-bg': bg,
+            '--drive-border': border,
+            '--drive-color': color
+          };
+
+          return (
+            <button
+              key={letter}
+              className={`drive-letter-btn ${isActiveDrive ? 'active' : ''}`}
+              onClick={() => {
+                onActivate();
+                navigateTo(letter.endsWith('\\') ? letter : letter + '\\');
+              }}
+              title={drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
+              style={driveStyleVars}
+            >
+              <HardDrive size={13} style={{ color: isActiveDrive ? color : 'var(--text-inactive)', opacity: 0.9 }} />
+              <span className="drive-letter-collapsed-label">{letter}</span>
+              <div className="drive-btn-info">
+                <span className="drive-btn-name" style={{ color: isActiveDrive ? 'var(--text-main)' : undefined }}>
+                  {drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
+                </span>
+                {size > 0 && (
+                  <span className="drive-btn-space">
+                    {formatBytes(free)} trống / {formatBytes(size)}
+                  </span>
+                )}
+              </div>
+              {size > 0 && (
+                <div className="drive-btn-progress-bar">
+                  <div className="drive-btn-progress-fill" style={{ width: `${percentUsed}%`, backgroundColor: color }} />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Tabs list bar */}
       <div className="pane-tabs-row">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`pane-tab ${activeTabId === tab.id ? 'active-tab' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onActivate();
-              setActiveTabId(tab.id);
-            }}
-          >
-            <span className="pane-tab-title">{tab.name}</span>
-            {tabs.length > 1 && (
-              <button
-                className="close-tab-btn"
-                onClick={(e) => closeTab(tab.id, e)}
-              >
-                <X size={10} />
-              </button>
-            )}
-          </div>
-        ))}
+        {/* Left Scroll Arrow */}
         <button
-          className="add-tab-btn"
-          title="Open new tab"
-          onClick={() => addTab(filesData.currentPath)}
+          className="tabs-scroll-btn tabs-scroll-btn-left"
+          title="Scroll Left"
+          onClick={scrollTabsLeft}
         >
-          <Plus size={14} />
+          <ChevronLeft size={12} />
+        </button>
+
+        <div className="pane-tabs-list" ref={tabsListRef}>
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className={`pane-tab ${activeTabId === tab.id ? 'active-tab' : ''} ${tab.isPinned ? 'pinned-tab' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onActivate();
+                setActiveTabId(tab.id);
+              }}
+            >
+              <span className="pane-tab-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {getTabIcon(tab.path)}
+                <span className="pane-tab-text">{tab.name}</span>
+              </span>
+              <button
+                className={`pin-tab-btn ${tab.isPinned ? 'active' : ''}`}
+                title={tab.isPinned ? "Bỏ ghim tab" : "Ghim tab"}
+                onClick={(e) => togglePinTab(tab.id, e)}
+              >
+                <Pin size={10} style={tab.isPinned ? { fill: 'currentColor' } : {}} />
+              </button>
+              {!tab.isPinned && tabs.length > 1 && (
+                <button
+                  className="close-tab-btn"
+                  onClick={(e) => closeTab(tab.id, e)}
+                >
+                  <X size={10} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            className="add-tab-btn"
+            title="Open new tab"
+            onClick={() => addTab(filesData.currentPath)}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        {/* Right Scroll Arrow */}
+        <button
+          className="tabs-scroll-btn tabs-scroll-btn-right"
+          title="Scroll Right"
+          onClick={scrollTabsRight}
+        >
+          <ChevronRight size={12} />
         </button>
 
         {/* Tab-row right-side quick widgets */}
@@ -1438,72 +1660,6 @@ const Pane = ({
             <MoreVertical size={14} />
           </button>
         </div>
-      </div>
-
-      {/* Pane specific Drives Letter list toolbar */}
-      <div className="drive-letter-toolbar">
-        {drives.map((drive) => {
-          const letter = drive.DeviceID;
-          const isActiveDrive = filesData.currentPath.toLowerCase().startsWith(letter.toLowerCase());
-          
-          const size = Number(drive.Size) || 0;
-          const free = Number(drive.FreeSpace) || 0;
-          const used = size - free;
-          const percentUsed = size > 0 ? (used / size) * 100 : 0;
-          
-          // Determine color scheme based on space usage
-          let color = '#3b82f6'; // Blue for low usage (<50%)
-          let bg = isActiveDrive ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.04)';
-          let border = isActiveDrive ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.2)';
-          
-          if (size > 0) {
-            if (percentUsed > 80) {
-              color = '#ef4444'; // Red for critical usage (>80%)
-              bg = isActiveDrive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.05)';
-              border = isActiveDrive ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.25)';
-            } else if (percentUsed > 50) {
-              color = '#f59e0b'; // Amber/Yellow for warning usage (50%-80%)
-              bg = isActiveDrive ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.05)';
-              border = isActiveDrive ? 'rgba(245, 158, 11, 0.6)' : 'rgba(245, 158, 11, 0.25)';
-            }
-          }
-          
-          const driveStyleVars = {
-            '--drive-bg': bg,
-            '--drive-border': border,
-            '--drive-color': color
-          };
-
-          return (
-            <button
-              key={letter}
-              className={`drive-letter-btn ${isActiveDrive ? 'active' : ''}`}
-              onClick={() => {
-                onActivate();
-                navigateTo(letter.endsWith('\\') ? letter : letter + '\\');
-              }}
-              title={drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
-              style={driveStyleVars}
-            >
-              <HardDrive size={13} style={{ color: isActiveDrive ? color : 'var(--text-inactive)', opacity: 0.9 }} />
-              <div className="drive-btn-info">
-                <span className="drive-btn-name" style={{ color: isActiveDrive ? 'var(--text-main)' : undefined }}>
-                  {drive.VolumeName ? `${drive.VolumeName} (${letter})` : `Local Disk (${letter})`}
-                </span>
-                {size > 0 && (
-                  <span className="drive-btn-space">
-                    {formatBytes(free)} trống / {formatBytes(size)}
-                  </span>
-                )}
-              </div>
-              {size > 0 && (
-                <div className="drive-btn-progress-bar">
-                  <div className="drive-btn-progress-fill" style={{ width: `${percentUsed}%`, backgroundColor: color }} />
-                </div>
-              )}
-            </button>
-          );
-        })}
       </div>
 
       {/* Pane Navigation bar */}

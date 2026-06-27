@@ -1,5 +1,5 @@
 :root {
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Outfit', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -481,6 +481,7 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   transition: all 0.2s ease;
+  container-type: inline-size;
 }
 
 .file-pane.active-pane {
@@ -494,44 +495,107 @@ body {
   align-items: center;
   background: var(--bg-tabs-row);
   border-bottom: 1px solid var(--border-color);
-  padding: 4px 6px 0;
-  gap: 2px;
+  padding: 0;
+  height: 32px;
+}
+
+.pane-tabs-list {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0; /* CRITICAL: Allows flex container to shrink below content size and scroll */
+  overflow-x: auto;
+  gap: 0;
+  height: 100%;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.pane-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.pane-tabs-list {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Horizontal scroll buttons */
+.tabs-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 100%;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-inactive);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.tabs-scroll-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.tabs-scroll-btn-left {
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tabs-scroll-btn-right {
+  border-left: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .pane-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 11px;
   color: var(--text-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.15s ease;
   max-width: 140px;
+  height: 100%;
+  position: relative;
+  box-sizing: border-box;
+  border-top: 2px solid transparent;
 }
 
 .pane-tab:hover {
-  background: var(--bg-hover-subtle);
+  background: var(--bg-hover);
   color: var(--text-main);
 }
 
 .pane-tab.active-tab {
   background: var(--bg-primary);
-  border-color: var(--border-color);
-  color: var(--text-main);
-  border-bottom: 1px solid var(--bg-primary);
-  font-weight: 500;
+  color: var(--accent-color);
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+  border-top: 2px solid var(--accent-color);
 }
 
 .pane-tab-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+
+.pane-tab-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
 }
 
 .close-tab-btn {
@@ -552,6 +616,36 @@ body {
   background: rgba(255, 255, 255, 0.15);
   color: var(--danger-color);
 }
+
+.pin-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-inactive);
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 1px;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.pane-tab:hover .pin-tab-btn,
+.pane-tab.pinned-tab .pin-tab-btn {
+  opacity: 0.7;
+}
+
+.pin-tab-btn:hover,
+.pin-tab-btn.active {
+  opacity: 1 !important;
+  color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
 
 .add-tab-btn {
   background: transparent;
@@ -761,7 +855,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 13px;
+  font-size: 11.5px;
 }
 
 .file-table th {
@@ -771,7 +865,7 @@ body {
   backdrop-filter: blur(10px);
   color: var(--text-muted);
   font-weight: 600;
-  padding: 8px 12px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   white-space: nowrap;
@@ -784,7 +878,7 @@ body {
 }
 
 .file-table td {
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-muted);
   white-space: nowrap;
@@ -888,7 +982,13 @@ body {
   padding: 4px 10px;
   background: var(--bg-drive-toolbar);
   border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+.drive-letter-toolbar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
 }
 
 .drive-letter-btn {
@@ -952,6 +1052,26 @@ body {
   opacity: 0.75;
   font-weight: normal;
   color: var(--text-muted);
+}
+
+.drive-letter-collapsed-label {
+  display: none;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+@container (max-width: 520px) {
+  .drive-letter-collapsed-label {
+    display: inline !important;
+  }
+  .drive-letter-btn .drive-btn-info,
+  .drive-letter-btn .drive-btn-progress-bar {
+    display: none !important;
+  }
+  .drive-letter-btn {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
 }
 
 /* Preview Panel */
@@ -1376,7 +1496,7 @@ body {
 
 .theme-light .pane-tab.active-tab {
   background: #fff;
-  border-bottom-color: #fff;
+  border-bottom: 1px solid transparent;
 }
 
 .theme-light .pane-footer {
@@ -1535,12 +1655,11 @@ body {
   }
 }
 
-/* File Grid View */
 .file-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--grid-item-width, 120px), 1fr));
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 8px;
   align-content: start;
 }
 
@@ -1563,7 +1682,7 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 8px;
+  padding: 5px;
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
@@ -1592,7 +1711,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   overflow: hidden;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.25);
@@ -1606,7 +1725,7 @@ body {
 }
 
 .grid-item-name {
-  font-size: 11.5px;
+  font-size: 10px;
   color: var(--text-main);
   word-break: break-all;
   display: -webkit-box;

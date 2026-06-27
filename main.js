@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+// Disable GPU rasterization to fix blurry font rendering on Windows
+app.commandLine.appendSwitch('disable-gpu-rasterization');
+
 
 let mainWindow = null;
 
@@ -11,6 +14,7 @@ function createWindow() {
     title: "Monkez File Manager",
     icon: path.join(__dirname, 'icon.png'),
     autoHideMenuBar: true, // Hide default file/edit menu bar for a clean native app look
+    backgroundColor: '#0b0f19', // Fix blurry fonts on Windows by forcing subpixel antialiasing
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

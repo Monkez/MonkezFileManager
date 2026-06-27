@@ -8,7 +8,8 @@ import {
   Eye, EyeOff, Sidebar as SidebarIcon,
   Copy, ArrowRightLeft,
   RectangleHorizontal, Columns2, Columns3, Settings,
-  ChevronDown, X, Folder, Sliders, FileText
+  ChevronDown, X, Folder, Sliders, FileText,
+  Monitor, Download, Image, Video, Music, Home, Cpu, HardDrive, Terminal, Activity
 } from 'lucide-react';
 
 const App = () => {
@@ -167,6 +168,30 @@ const App = () => {
     loadDrives();
     loadBookmarks();
     loadSystemPaths();
+  }, []);
+
+  // Listen to real-time drive plug/unplug events (USB/external disks)
+  useEffect(() => {
+    const eventSource = new EventSource('/api/watch-drives');
+    
+    eventSource.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        console.log('[DriveWatcher] Received change event:', payload);
+        loadDrives();
+      } catch (err) {
+        console.error('[DriveWatcher] Error parsing event:', err);
+        loadDrives(); // Fallback refresh
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.warn('[DriveWatcher] Connection error or disconnected. Retrying...');
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   // Close dropdowns when clicking outside
@@ -493,62 +518,6 @@ const App = () => {
     <div className={`app-container theme-${theme}`}>
       {/* Top Main Command Toolbar */}
       <header className="toolbar-global">
-        {/* File Actions Group */}
-        <div className="toolbar-group">
-          <button 
-            className="toolbar-btn" 
-            title="Create new folder"
-            onClick={() => openModal('mkdir', { currentPath: activePaneSel?.currentPath, callback: handleRefresh })}
-          >
-            <FolderPlus size={16} />
-            <span>New Folder</span>
-          </button>
-          <button 
-            className="toolbar-btn" 
-            title="Create empty file"
-            onClick={() => openModal('mkfile', { currentPath: activePaneSel?.currentPath, callback: handleRefresh })}
-          >
-            <FilePlus size={16} />
-            <span>New File</span>
-          </button>
-          <button 
-            className="toolbar-btn" 
-            title="Rename active file/folder (F2)"
-            disabled={activeSelectionCount !== 1}
-            onClick={() => {
-              if (activeSelectionCount === 1) {
-                const fullPath = activePaneSel.selectedPaths[0];
-                // Extract base name
-                const parts = fullPath.replace(/\\/g, '/').split('/');
-                const baseName = parts[parts.length - 1];
-                openModal('rename', { 
-                  currentPath: activePaneSel.currentPath, 
-                  oldName: baseName, 
-                  callback: handleRefresh 
-                });
-              }
-            }}
-          >
-            <Edit3 size={16} />
-            <span>Rename</span>
-          </button>
-          <button 
-            className="toolbar-btn btn-danger" 
-            title="Delete selected files/folders (Del)"
-            disabled={activeSelectionCount === 0}
-            onClick={() => {
-              if (activeSelectionCount > 0) {
-                openModal('delete', { paths: activePaneSel.selectedPaths, callback: handleRefresh });
-              }
-            }}
-          >
-            <Trash2 size={16} />
-            <span>Delete</span>
-          </button>
-        </div>
-
-        <div className="toolbar-divider" />
-
         {/* View Options Group */}
         <div className="toolbar-group">
           <button 
@@ -651,72 +620,84 @@ const App = () => {
                 {systemPaths ? (
                   <>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.desktop); setShowSystemPathsDropdown(false); }}>
+                      <Monitor size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Desktop (Màn hình chính)</span>
                         <span className="bookmark-path">{systemPaths.desktop}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.downloads); setShowSystemPathsDropdown(false); }}>
+                      <Download size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Downloads (Tải về)</span>
                         <span className="bookmark-path">{systemPaths.downloads}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.documents); setShowSystemPathsDropdown(false); }}>
+                      <FileText size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Documents (Tài liệu)</span>
                         <span className="bookmark-path">{systemPaths.documents}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.pictures); setShowSystemPathsDropdown(false); }}>
+                      <Image size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Pictures (Hình ảnh)</span>
                         <span className="bookmark-path">{systemPaths.pictures}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.videos); setShowSystemPathsDropdown(false); }}>
+                      <Video size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Videos (Video)</span>
                         <span className="bookmark-path">{systemPaths.videos}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.music); setShowSystemPathsDropdown(false); }}>
+                      <Music size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Music (Nhạc)</span>
                         <span className="bookmark-path">{systemPaths.music}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.userProfile); setShowSystemPathsDropdown(false); }}>
+                      <Home size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">User Profile (Thư mục cá nhân)</span>
                         <span className="bookmark-path">{systemPaths.userProfile}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFiles); setShowSystemPathsDropdown(false); }}>
+                      <Cpu size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Program Files</span>
                         <span className="bookmark-path">{systemPaths.programFiles}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.programFilesX86); setShowSystemPathsDropdown(false); }}>
+                      <Cpu size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Program Files (x86)</span>
                         <span className="bookmark-path">{systemPaths.programFilesX86}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.windowsDir); setShowSystemPathsDropdown(false); }}>
+                      <HardDrive size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Windows (Thư mục cài đặt OS)</span>
                         <span className="bookmark-path">{systemPaths.windowsDir}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.appData); setShowSystemPathsDropdown(false); }}>
+                      <Folder size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">AppData (Roaming)</span>
                         <span className="bookmark-path">{systemPaths.appData}</span>
                       </div>
                     </div>
                     <div className="bookmarks-dropdown-item" onClick={() => { handleNavigate(systemPaths.tempDir); setShowSystemPathsDropdown(false); }}>
+                      <Trash2 size={14} style={{ color: 'var(--text-muted)' }} />
                       <div className="bookmark-info">
                         <span className="bookmark-name">Temp (Thư mục tạm)</span>
                         <span className="bookmark-path">{systemPaths.tempDir}</span>
@@ -749,66 +730,77 @@ const App = () => {
               <div className="bookmarks-dropdown-menu">
                 <div className="bookmarks-dropdown-header">Công Cụ Hệ Thống</div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('control-panel'); setShowSystemToolsDropdown(false); }}>
+                  <Sliders size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Control Panel</span>
                     <span className="bookmark-path">Bảng điều khiển truyền thống</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('settings'); setShowSystemToolsDropdown(false); }}>
+                  <Settings size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Windows Settings</span>
                     <span className="bookmark-path">Cấu hình cài đặt hệ thống</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('add-remove-programs'); setShowSystemToolsDropdown(false); }}>
+                  <Cpu size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Add or Remove Programs</span>
                     <span className="bookmark-path">Quản lý và gỡ cài đặt phần mềm</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('task-manager'); setShowSystemToolsDropdown(false); }}>
+                  <Activity size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Task Manager</span>
                     <span className="bookmark-path">Quản lý các tác vụ đang chạy</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('disk-management'); setShowSystemToolsDropdown(false); }}>
+                  <HardDrive size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Disk Management</span>
                     <span className="bookmark-path">Quản lý phân vùng ổ đĩa</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('device-manager'); setShowSystemToolsDropdown(false); }}>
+                  <Cpu size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Device Manager</span>
                     <span className="bookmark-path">Quản lý driver phần cứng</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('registry-editor'); setShowSystemToolsDropdown(false); }}>
+                  <FileText size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Registry Editor</span>
                     <span className="bookmark-path">Chỉnh sửa cơ sở dữ liệu registry</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('services'); setShowSystemToolsDropdown(false); }}>
+                  <Settings size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Services</span>
                     <span className="bookmark-path">Quản lý dịch vụ chạy ngầm</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('resource-monitor'); setShowSystemToolsDropdown(false); }}>
+                  <Activity size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Resource Monitor</span>
                     <span className="bookmark-path">Theo dõi CPU, Memory, Disk, Network</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('command-prompt'); setShowSystemToolsDropdown(false); }}>
+                  <Terminal size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">Command Prompt (CMD)</span>
                     <span className="bookmark-path">Khởi chạy cmd.exe</span>
                   </div>
                 </div>
                 <div className="bookmarks-dropdown-item" onClick={() => { handleLaunchTool('powershell'); setShowSystemToolsDropdown(false); }}>
+                  <Terminal size={14} style={{ color: 'var(--text-muted)' }} />
                   <div className="bookmark-info">
                     <span className="bookmark-name">PowerShell</span>
                     <span className="bookmark-path">Khởi chạy powershell.exe</span>
@@ -819,29 +811,7 @@ const App = () => {
           </div>
         </div>
 
-        <div className="toolbar-divider" />
 
-        {/* Copy/Move to other pane */}
-        <div className="toolbar-group">
-          <button 
-            className="toolbar-btn" 
-            title="Copy selected items to the other pane (F5)"
-            disabled={activeSelectionCount === 0 || panes.length < 2}
-            onClick={() => handleF5F6Shortcut('copy')}
-          >
-            <Copy size={15} />
-            <span>Copy to Target</span>
-          </button>
-          <button 
-            className="toolbar-btn" 
-            title="Move selected items to the other pane (F6)"
-            disabled={activeSelectionCount === 0 || panes.length < 2}
-            onClick={() => handleF5F6Shortcut('move')}
-          >
-            <ArrowRightLeft size={15} />
-            <span>Move to Target</span>
-          </button>
-        </div>
 
         <div style={{ marginLeft: 'auto' }} />
 
