@@ -84,3 +84,11 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Ô search trong mỗi pane hỗ trợ tìm sâu bằng `Enter`, kèm bộ lọc theo đuôi file, loại file/thư mục, dung lượng, ngày sửa và nội dung file text/code.
 - Quick Command Palette mở bằng `Ctrl+Shift+P` hoặc nút **Command**, giúp gọi nhanh các lệnh thường dùng mà không cần rời bàn phím.
 - Có thể kéo thả tab trên thanh tabs để đổi vị trí, giúp sắp xếp phiên làm việc gọn hơn.
+
+## 14. Power Send Qua Mạng LAN
+- Gửi trực tiếp nhiều file và folder giữa hai máy trong LAN bằng một mã tùy ý, không cần tài khoản, cloud hoặc nhập IP.
+- Máy nhận tự tìm máy gửi bằng UDP discovery, sau đó tải dữ liệu trực tiếp qua HTTP streaming.
+- Hỗ trợ giữ nguyên cấu trúc thư mục và tự tránh ghi đè khi thư mục đích có tên trùng.
+- Power Send Manager hiển thị tiến trình, tốc độ, ETA, máy peer và cho phép dừng/xóa phiên.
+- Có thể thêm nhiều nguồn vào cùng một mã gửi.
+- API quản trị vẫn khóa ở localhost; cổng LAN chỉ phục vụ dữ liệu của offer có token tạm.

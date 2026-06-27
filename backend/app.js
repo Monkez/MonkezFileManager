@@ -13,15 +13,18 @@ const {
 } = require('./security/pathGuard');
 const { TaskManager } = require('./services/taskManager');
 const { OperationHistory } = require('./services/operationHistory');
+const { PowerSendService } = require('./services/powerSendService');
 const { createTasksRouter } = require('./routes/tasks.routes');
 const { createFileOperationsRouter } = require('./routes/fileOperations.routes');
 const { createHistoryRouter } = require('./routes/history.routes');
+const { createPowerSendRouter } = require('./routes/powerSend.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '127.0.0.1';
 const operationHistory = new OperationHistory();
 const taskManager = new TaskManager({ operationHistory });
+const powerSendService = new PowerSendService();
 
 const allowedOrigins = new Set([
   `http://localhost:3000`,
@@ -53,6 +56,7 @@ app.use(express.json());
 app.use('/api', createFileOperationsRouter({ operationHistory }));
 app.use('/api', createHistoryRouter(operationHistory));
 app.use('/api/tasks', createTasksRouter(taskManager));
+app.use('/api/power-send', createPowerSendRouter(powerSendService));
 
 // Bookmark JSON storage path - support Electron userData path and packaged writeable path
 let bookmarksCachedPath = null;
@@ -1683,4 +1687,4 @@ const startServer = () => {
   });
 };
 
-module.exports = { app, startServer, taskManager };
+module.exports = { app, startServer, taskManager, powerSendService };

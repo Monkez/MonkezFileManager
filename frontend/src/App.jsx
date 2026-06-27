@@ -5,19 +5,27 @@ import PreviewPanel from './components/PreviewPanel';
 import TaskPanel from './components/TaskPanel';
 import CommandPalette from './components/CommandPalette';
 import BatchRenameModal from './components/BatchRenameModal';
+import PowerSendPanel from './components/PowerSendPanel';
+import PowerSendModal from './components/PowerSendModal';
 import { useTaskStore } from './stores/useTaskStore';
+import { usePowerSendStore } from './stores/usePowerSendStore';
 import { 
   Trash2, RefreshCw, 
   Star, HelpCircle,
   Eye, EyeOff, Sidebar as SidebarIcon,
   RectangleHorizontal, Columns2, Columns3, Settings,
   ChevronDown, X, Folder, Sliders, FileText,
-  Monitor, Download, Image, Video, Music, Home, Cpu, HardDrive, Terminal, Activity
+  Monitor, Download, Image, Video, Music, Home, Cpu, HardDrive, Terminal, Activity, Wifi
 } from 'lucide-react';
 
 const App = () => {
   const connectTaskEvents = useTaskStore(state => state.connectTaskEvents);
   const disconnectTaskEvents = useTaskStore(state => state.disconnectTaskEvents);
+  const connectPowerSendEvents = usePowerSendStore(state => state.connectEvents);
+  const disconnectPowerSendEvents = usePowerSendStore(state => state.disconnectEvents);
+  const createPowerSendOffer = usePowerSendStore(state => state.createOffer);
+  const receivePowerSend = usePowerSendStore(state => state.receive);
+  const setPowerSendPanelOpen = usePowerSendStore(state => state.setPanelOpen);
 
   // Drives and Bookmarks
   const [drives, setDrives] = useState([]);
@@ -181,6 +189,11 @@ const App = () => {
     connectTaskEvents();
     return () => disconnectTaskEvents();
   }, [connectTaskEvents, disconnectTaskEvents]);
+
+  useEffect(() => {
+    connectPowerSendEvents();
+    return () => disconnectPowerSendEvents();
+  }, [connectPowerSendEvents, disconnectPowerSendEvents]);
 
   // Listen to real-time drive plug/unplug events (USB/external disks)
   useEffect(() => {
@@ -580,6 +593,22 @@ const App = () => {
     });
   };
 
+  const handlePowerSendSubmit = async ({ code }) => {
+    if (modal.type === 'network-send') {
+      await createPowerSendOffer({
+        paths: modal.data.paths,
+        code
+      });
+    } else {
+      await receivePowerSend({
+        code,
+        destinationDir: modal.data.destinationDir
+      });
+    }
+    setPowerSendPanelOpen(true);
+    closeModal();
+  };
+
   const commandList = [
     {
       id: 'new-folder',
@@ -616,6 +645,29 @@ const App = () => {
       description: 'Làm lại thao tác vừa undo',
       keywords: ['redo', 'history'],
       run: () => runHistoryAction('redo')
+    },
+    {
+      id: 'network-send',
+      label: 'Network Send',
+      description: selectedCount > 0 ? `Gửi ${selectedCount} mục qua LAN` : 'Chọn file/thư mục trước',
+      keywords: ['network', 'send', 'lan', 'power'],
+      disabled: selectedCount === 0,
+      run: () => openModal('network-send', { paths: activePaneSel.selectedPaths })
+    },
+    {
+      id: 'network-receive',
+      label: 'Network Receive',
+      description: activePaneSel?.currentPath || 'Thư mục hiện tại',
+      keywords: ['network', 'receive', 'lan', 'power'],
+      disabled: !activePaneSel?.currentPath,
+      run: () => openModal('network-receive', { destinationDir: activePaneSel.currentPath })
+    },
+    {
+      id: 'power-send-manager',
+      label: 'Mở Power Send Manager',
+      description: 'Quản lý các phiên gửi và nhận trong LAN',
+      keywords: ['network', 'manager', 'transfer', 'lan'],
+      run: () => setPowerSendPanelOpen(true)
     },
     {
       id: 'refresh',
@@ -698,6 +750,10 @@ const App = () => {
           <button className="toolbar-btn" onClick={() => setCommandOpen(true)} title="Command Palette (Ctrl+Shift+P)">
             <Terminal size={15} />
             <span>Command</span>
+          </button>
+          <button className="toolbar-btn" onClick={() => setPowerSendPanelOpen(true)} title="Power Send Manager">
+            <Wifi size={15} />
+            <span>Power Send</span>
           </button>
 
           
@@ -1357,7 +1413,16 @@ const App = () => {
         />
       )}
 
-      {modal.isOpen && modal.type !== 'batch-rename' && (
+      {modal.isOpen && ['network-send', 'network-receive'].includes(modal.type) && (
+        <PowerSendModal
+          type={modal.type}
+          data={modal.data}
+          onClose={closeModal}
+          onSubmit={handlePowerSendSubmit}
+        />
+      )}
+
+      {modal.isOpen && !['batch-rename', 'network-send', 'network-receive'].includes(modal.type) && (
         <Modal 
           type={modal.type} 
           data={modal.data} 
@@ -1372,6 +1437,7 @@ const App = () => {
         commands={commandList}
       />
 
+      <PowerSendPanel />
       <TaskPanel />
 
       {/* Bottom Global Status Bar */}

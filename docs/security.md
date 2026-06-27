@@ -37,4 +37,24 @@ Hiện tại `open`, `reveal`, `open-with` và `launch-tool` cũng đã chuyển
 
 Copy/move không được ghi đè im lặng. Khi trùng tên, hệ thống sẽ tự tạo tên kiểu `- Copy`, `- Copy 2` để tránh mất dữ liệu.
 
+## 5. Power Send Trong LAN
+
+Power Send là ngoại lệ có kiểm soát đối với nguyên tắc chỉ lắng nghe localhost:
+
+- Express API quản trị vẫn chỉ bind vào `127.0.0.1`.
+- Power Send tạo một HTTP server riêng trên `0.0.0.0` và cổng ngẫu nhiên chỉ khi người dùng bắt đầu gửi/nhận.
+- HTTP server riêng không expose các route hệ thống, bookmark, shell hoặc file browser.
+- Offer được bảo vệ bằng access token ngẫu nhiên; token chỉ được gửi trong phản hồi discovery tới peer hỏi đúng hash của mã.
+- Manifest không chứa absolute path.
+- Receiver kiểm tra relative path và chặn `..`, null byte và path thoát khỏi thư mục đích.
+- Symbolic link bị từ chối khi build manifest.
+- Tệp đang nhận được ghi vào file `.part`, sau đó mới rename khi tải hoàn tất.
+
+Giới hạn hiện tại:
+
+- HTTP streaming chưa mã hóa đầu cuối.
+- UDP discovery có thể bị quan sát trong cùng mạng.
+- Không nên dùng Power Send trên Wi-Fi công cộng hoặc LAN không đáng tin cậy.
+- Mã gửi nên đủ khó đoán và phân biệt chữ hoa/chữ thường.
+
 Xóa thường nên đi qua Thùng Rác khi chạy trong Electron. Xóa vĩnh viễn phải luôn có xác nhận từ UI.

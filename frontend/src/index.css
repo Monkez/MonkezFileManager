@@ -1994,6 +1994,165 @@ body {
   border-color: var(--danger-color);
 }
 
+/* Power Send */
+.power-send-panel {
+  position: fixed;
+  top: 48px;
+  right: 14px;
+  bottom: 36px;
+  width: min(460px, calc(100vw - 28px));
+  z-index: 1350;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-main);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.power-send-header {
+  min-height: 42px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.power-send-header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.power-send-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.power-send-empty {
+  padding: 28px 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.power-send-row {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.power-send-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.power-send-direction {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.power-send-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.power-send-title {
+  font-size: 12px;
+}
+
+.power-send-subtitle,
+.power-send-current {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.power-send-subtitle {
+  margin-top: 3px;
+}
+
+.power-send-current {
+  margin-top: 5px;
+}
+
+.power-send-progress {
+  background: var(--success-color);
+}
+
+.power-send-modal {
+  width: min(500px, calc(100vw - 28px));
+}
+
+.power-send-modal .modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.power-send-modal-description {
+  margin: 10px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.power-send-destination {
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.power-send-code-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.power-send-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+
+.power-send-code-row .modal-btn {
+  min-width: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.power-send-security-note {
+  margin-top: 10px;
+  color: var(--text-inactive);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 /* Command palette */
 .command-palette-overlay {
   position: fixed;

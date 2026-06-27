@@ -15,6 +15,8 @@ Backend hiện được tách thành entrypoint mỏng và các module chuyên t
 - `backend/routes/fileOperations.routes.js`: route cho nhóm thao tác file.
 - `backend/services/operationHistory.js`: lưu lịch sử thao tác file để phục vụ Undo/Redo trong phiên chạy hiện tại.
 - `backend/routes/history.routes.js`: API `/api/history`, `/api/undo`, `/api/redo`.
+- `backend/services/powerSendService.js`: discovery peer bằng UDP, tạo manifest, HTTP streaming và quản lý phiên gửi/nhận LAN.
+- `backend/routes/powerSend.routes.js`: API localhost và SSE cho Power Send Manager.
 
 Trong các bước refactor tiếp theo, các nhóm route còn trong `app.js` nên tiếp tục được tách ra:
 
@@ -33,6 +35,9 @@ Frontend bắt đầu có lớp state dùng Zustand cho các tác vụ nền:
 - `frontend/src/components/TaskPanel.jsx`: hiển thị tiến độ copy/move, tốc độ, ETA, pause/resume/cancel.
 - `frontend/src/components/CommandPalette.jsx`: bảng lệnh nhanh cho các thao tác thường dùng.
 - `frontend/src/components/BatchRenameModal.jsx`: giao diện đổi tên hàng loạt có preview.
+- `frontend/src/stores/usePowerSendStore.js`: state và SSE cho các phiên Power Send.
+- `frontend/src/components/PowerSendModal.jsx`: nhập mã gửi/nhận.
+- `frontend/src/components/PowerSendPanel.jsx`: bảng quản lý tiến trình gửi/nhận.
 
 `Pane.jsx` đã bắt đầu được component hóa:
 
@@ -68,3 +73,24 @@ Các API chính:
 - `POST /api/batch-rename/apply`
 
 Batch Rename luôn preview trước khi apply và kiểm tra xung đột tên mới, bao gồm cả xung đột với file đã tồn tại và xung đột giữa các mục đang được đổi tên cùng lúc.
+
+## 5. Luồng Power Send
+
+1. Máy gửi tạo offer từ các path đã chuẩn hóa.
+2. Backend build manifest chỉ gồm source ID, relative path, type và size; absolute path chỉ giữ nội bộ.
+3. Power Send mở UDP socket trên cổng `38492` và một HTTP server trên cổng TCP ngẫu nhiên.
+4. Máy nhận broadcast hash của mã trong LAN.
+5. Máy gửi phản hồi unicast với offer ID, TCP port và token ngẫu nhiên.
+6. Máy nhận tải manifest, tạo cây thư mục an toàn và stream từng file.
+7. Hai phía cập nhật tiến trình qua SSE localhost `/api/power-send/events`.
+
+API quản lý:
+
+- `GET /api/power-send/transfers`
+- `GET /api/power-send/events`
+- `POST /api/power-send/offers`
+- `POST /api/power-send/receive`
+- `POST /api/power-send/:id/cancel`
+- `DELETE /api/power-send/:id`
+
+Các endpoint LAN không chia sẻ Express app chính. Chúng nằm trên HTTP server riêng và chỉ phục vụ manifest/file khi token của offer hợp lệ.

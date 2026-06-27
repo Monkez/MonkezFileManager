@@ -9,7 +9,7 @@ import {
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
-  Home, Monitor, Download
+  Home, Monitor, Download, Upload, Wifi
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -543,6 +543,15 @@ const Pane = ({
       setClipboard({ paths: selectedPaths, type: 'copy' });
     } else if (action === 'cut') {
       setClipboard({ paths: selectedPaths, type: 'cut' });
+    } else if (action === 'network-send') {
+      if (selectedPaths.length > 0) {
+        openModal('network-send', { paths: selectedPaths });
+      }
+    } else if (action === 'network-receive') {
+      const destinationDir = contextMenu.targetItem?.isDirectory
+        ? contextMenu.targetItem.path
+        : filesData.currentPath;
+      openModal('network-receive', { destinationDir });
     } else if (action === 'paste') {
       if (clipboard.paths.length === 0) return;
       const isCopy = clipboard.type === 'copy';
@@ -1930,8 +1939,15 @@ const Pane = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Scissors size={14} /> <span>Cut</span></div>
                 <span className="context-menu-shortcut">Ctrl+X</span>
               </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Upload size={14} /> <span>Network Send</span></div>
+              </div>
               {contextMenu.targetItem.isDirectory && (
                 <>
+                  <div className="context-menu-item" onClick={() => handleContextMenuAction('network-receive')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Download size={14} /> <span>Network Receive Here</span></div>
+                  </div>
                   <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Bookmark size={14} /> <span>Add to Bookmarks</span></div>
                   </div>
@@ -2031,6 +2047,10 @@ const Pane = ({
               </div>
               <div className="context-menu-item" onClick={() => handleCopyPath(filesData.currentPath)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy Path</span></div>
+              </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('network-receive')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Wifi size={14} /> <span>Network Receive Here</span></div>
               </div>
               <div className="context-menu-divider" />
               {shellApps.terminal.available && (

@@ -2,6 +2,24 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.6.0] - 28-06-2026
+
+### Thêm Mới
+- Thêm **Power Send** để truyền trực tiếp nhiều file/thư mục giữa các máy trong cùng mạng LAN bằng mã gửi/nhận.
+- Thêm `Network Send` trong menu chuột phải của file/thư mục và `Network Receive Here` trong menu của folder/vùng trống.
+- Thêm UDP discovery để máy nhận tự tìm máy gửi theo mã, không cần nhập địa chỉ IP.
+- Thêm HTTP streaming server riêng chỉ khởi động khi dùng Power Send, xác thực bằng token tạm cho từng offer.
+- Thêm Power Send Manager hiển thị trạng thái chờ, gửi, nhận, tốc độ, ETA, peer và hỗ trợ dừng/xóa/copy mã.
+- Thêm Command Palette actions cho Network Send, Network Receive và mở Power Send Manager.
+- Thêm test loopback truyền thật nhiều file/thư mục qua HTTP, test gộp nguồn cùng mã và kiểm tra path nhận an toàn.
+- Thêm tài liệu `docs/power-send.md`.
+
+### Bảo Mật
+- API quản trị chính tiếp tục chỉ lắng nghe trên localhost.
+- Manifest truyền qua LAN không chứa đường dẫn tuyệt đối của máy gửi.
+- Máy nhận chặn path traversal; symbolic link bị từ chối.
+- Cổng stream LAN chỉ phục vụ offer hợp lệ có token tạm.
+
 ## [1.5.0] - 28-06-2026
 
 ### Thêm Mới

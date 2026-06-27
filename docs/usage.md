@@ -72,6 +72,26 @@ Bạn có thể dùng thêm cú pháp:
 - Có thể kéo thả tab trên thanh tabs của từng pane để đổi thứ tự.
 - Tab đã ghim vẫn được lưu lại cho lần mở ứng dụng sau.
 
+## Power Send Trong Mạng LAN
+
+### Gửi
+
+1. Chọn một hoặc nhiều file/thư mục.
+2. Nhấn chuột phải, chọn **Network Send**.
+3. Nhập mã tùy ý hoặc dùng mã ứng dụng tạo sẵn.
+4. Nhấn **Bắt đầu chờ nhận**.
+
+### Nhận
+
+1. Mở thư mục đích.
+2. Nhấn chuột phải vào folder hoặc vùng trống, chọn **Network Receive Here**.
+3. Nhập đúng mã từ máy gửi.
+4. Nhấn **Tìm và tải về**.
+
+Nút **Power Send** trên toolbar mở bảng quản lý tất cả phiên gửi/nhận. Có thể theo dõi tốc độ, ETA, dừng phiên hoặc xóa phiên khỏi danh sách.
+
+Hai máy phải ở cùng mạng LAN. Windows Firewall có thể yêu cầu cấp quyền mạng lần đầu. Xem hướng dẫn đầy đủ tại `docs/power-send.md`.
+
 ## 5. Bảng Phím Tắt Tiện Ích
 
 | Phím tắt | Thao tác | Mô tả |
