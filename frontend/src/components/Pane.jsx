@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import FileTable from './FileTable';
+import FileGrid from './FileGrid';
 import { 
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
@@ -91,8 +93,6 @@ const Pane = ({
   drives = [],
   onFileDrop = () => {},
   onSelectionChange = () => {},
-  activeItem,
-  setActiveItem = () => {},
   openModal = () => {},
   clipboard = { paths: [], type: 'copy' },
   setClipboard = () => {},
@@ -166,7 +166,7 @@ const Pane = ({
     return initial[0]?.id || 'tab-1';
   });
 
-  const [restorablePath, setRestorablePath] = useState(() => {
+  const [restorablePath] = useState(() => {
     return localStorage.getItem('monkez_last_path_' + paneId);
   });
 
@@ -222,39 +222,6 @@ const Pane = ({
 
 
   // Custom Context Menu State
-
-  const [loadingContextMenu, setLoadingContextMenu] = useState(false);
-  const [dynamicMenuItems, setDynamicMenuItems] = useState([]);
-  const [showDynamicSubmenu, setShowDynamicSubmenu] = useState(false);
-  const [showWinrarSubmenu, setShowWinrarSubmenu] = useState(false);
-  const winrarSubmenuRef = useRef(null);
-  const submenuRef = useRef(null);
-  const getSubmenuStyle = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const style = { position: 'absolute' };
-    
-    // Vertical positioning: if in the bottom half, expand upwards
-    if (rect.top > window.innerHeight / 2) {
-      style.bottom = 0;
-      style.top = 'auto';
-    } else {
-      style.top = 0;
-      style.bottom = 'auto';
-    }
-    
-    // Horizontal positioning: if too close to right edge, expand leftwards
-    if (rect.right + 250 > window.innerWidth) {
-      style.left = 'auto';
-      style.right = '100%';
-    } else {
-      style.left = '100%';
-      style.right = 'auto';
-    }
-    return style;
-  };
-  
-  const [submenuDynamicStyle, setSubmenuDynamicStyle] = useState({ position: 'absolute', left: '100%', top: 0 });
-  const [winrarSubmenuDynamicStyle, setWinrarSubmenuDynamicStyle] = useState({ position: 'absolute', left: '100%', top: 0 });
 
   const [contextMenu, setContextMenu] = useState({
     isOpen: false,
@@ -442,24 +409,7 @@ const Pane = ({
         menuEl.style.left = `${adjustedX}px`;
       }
     }
-  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y, dynamicMenuItems, showWinrarSubmenu, showDynamicSubmenu]);
-
-
-  const fetchContextMenu = async (targetPath) => {
-    setLoadingContextMenu(true);
-    setDynamicMenuItems([]);
-    try {
-      const res = await fetch(`/api/context-menu?path=${encodeURIComponent(targetPath)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDynamicMenuItems(data.items || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch context menu:', err);
-    } finally {
-      setLoadingContextMenu(false);
-    }
-  };
+  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y]);
 
   const handleRowContextMenu = (item, idx, e) => {
     e.preventDefault();
@@ -596,7 +546,7 @@ const Pane = ({
     } else if (action === 'paste') {
       if (clipboard.paths.length === 0) return;
       const isCopy = clipboard.type === 'copy';
-      const url = isCopy ? '/api/copy' : '/api/move';
+      const url = isCopy ? '/api/tasks/copy' : '/api/tasks/move';
       
       try {
         setLoading(true);
@@ -613,7 +563,6 @@ const Pane = ({
           // Clear clipboard on cut
           setClipboard({ paths: [], type: 'copy' });
         }
-        window.dispatchEvent(new CustomEvent('refresh-all-panes'));
       } catch (err) {
         alert(`Error pasting files: ${err.message}`);
       } finally {
@@ -733,7 +682,7 @@ const Pane = ({
           alert(`Thư mục hiện tại không còn khả dụng (bị xóa hoặc rút thiết bị). Trở lại: ${fallbackPath}`);
           navigateTo(fallbackPath);
         }
-      } catch (err) {
+      } catch {
         // Fallback for legacy plain text messages
         if (e.data === 'changed') {
           clearTimeout(debounceTimer);
@@ -850,10 +799,12 @@ const Pane = ({
 
   // Save pinned tabs to localStorage whenever they change, but preserve closed ones
   useEffect(() => {
-    let saved = [];
+    let saved;
     try {
       saved = JSON.parse(localStorage.getItem(`monkez_pinned_tabs_${paneId}`) || '[]');
-    } catch (e) {}
+    } catch {
+      saved = [];
+    }
     
     let pinnedMap = new Map();
     saved.forEach(t => pinnedMap.set(t.id, t));
@@ -1317,7 +1268,7 @@ const Pane = ({
   // Drag and drop handlers
   const handleDragStart = (e, item) => {
     // Determine path(s) to drag
-    let pathsToDrag = [];
+    let pathsToDrag;
     if (!selectedNames.has(item.name)) {
       pathsToDrag = [item.path];
     } else {
@@ -1413,7 +1364,7 @@ const Pane = ({
       if (externalPaths.length > 0) {
         try {
           setLoading(true);
-          const res = await fetch('/api/copy', {
+          const res = await fetch('/api/tasks/copy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sources: externalPaths, destinationDir: filesData.currentPath })
@@ -1422,7 +1373,6 @@ const Pane = ({
           if (!res.ok) {
             throw new Error(resData.error || 'Failed to copy external files');
           }
-          window.dispatchEvent(new CustomEvent('refresh-all-panes'));
         } catch (err) {
           alert(`Lỗi kéo thả từ ứng dụng ngoài: ${err.message}`);
         } finally {
@@ -1844,118 +1794,44 @@ const Pane = ({
             </div>
           )
         ) : viewMode === 'text' ? (
-          <table className="file-table" style={{ opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s ease' }}>
-            <thead>
-              <tr>
-                <th onClick={() => handleSort('name')}>
-                  Name {sortKey === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th style={{ width: '80px', textAlign: 'right' }} onClick={() => handleSort('size')}>
-                  Size {sortKey === 'size' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th style={{ width: '130px' }} onClick={() => handleSort('mtime')}>
-                  Date Modified {sortKey === 'mtime' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-                <th style={{ width: '60px' }} onClick={() => handleSort('ext')}>
-                  Type {sortKey === 'ext' && (sortDirection === 'asc' ? '▲' : '▼')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Parent folder shortcut if parent path is available */}
-              {filesData.parentPath && !filterQuery && (
-                <tr onDoubleClick={goUp}>
-                  <td colSpan={4} className="file-item-name-cell" style={{ color: 'var(--accent-color)' }}>
-                    <Folder size={16} className="file-icon folder" style={{ color: 'var(--accent-color)' }} />
-                    <span>.. (Parent Folder)</span>
-                  </td>
-                </tr>
-              )}
-
-              {sortedItems.map((item, idx) => {
-                const isSelected = selectedNames.has(item.name);
-                const isFocused = idx === focusedIndex;
-                const isCopied = clipboard.type === 'copy' && clipboard.paths.includes(item.path);
-                const isCut = clipboard.type === 'cut' && clipboard.paths.includes(item.path);
-                
-                return (
-                  <tr
-                    key={item.name}
-                    data-name={item.name}
-                    className={`${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
-                    onClick={(e) => handleItemClick(item, idx, e)}
-                    onDoubleClick={() => handleItemDoubleClick(item)}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, item)}
-                    onContextMenu={(e) => handleRowContextMenu(item, idx, e)}
-                  >
-                    <td className="file-item-name-cell">
-                      {getFileIcon(item)}
-                      <span className="sidebar-item-text" title={item.name}>
-                        {(showExtensions || item.isDirectory || !item.ext) ? item.name : item.name.slice(0, item.name.length - item.ext.length) || item.name}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {item.isDirectory ? '<DIR>' : formatSize(item.size)}
-                    </td>
-                    <td>
-                      {new Date(item.mtime).toLocaleString()}
-                    </td>
-                    <td>
-                      {item.isDirectory ? 'Folder' : item.ext.toUpperCase().replace('.', '') || 'File'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <FileTable
+            items={sortedItems}
+            loading={loading}
+            parentPath={filesData.parentPath}
+            filterQuery={filterQuery}
+            selectedNames={selectedNames}
+            focusedIndex={focusedIndex}
+            clipboard={clipboard}
+            showExtensions={showExtensions}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            onGoUp={goUp}
+            onItemClick={handleItemClick}
+            onItemDoubleClick={handleItemDoubleClick}
+            onDragStart={handleDragStart}
+            onContextMenu={handleRowContextMenu}
+            getFileIcon={getFileIcon}
+            formatSize={formatSize}
+          />
         ) : (
-          <div 
-            className={`file-grid ${viewMode}`}
-            style={{ opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s ease' }}
-          >
-            {/* Parent folder shortcut for Grid view */}
-            {filesData.parentPath && !filterQuery && (
-              <div 
-                className="grid-item parent-folder-grid" 
-                onDoubleClick={goUp}
-                style={{ color: 'var(--accent-color)' }}
-              >
-                <div className="grid-item-thumbnail-wrapper">
-                  <Folder className="file-icon folder" size={viewMode === 'grid-small' ? 32 : viewMode === 'grid-medium' ? 48 : 64} style={{ color: 'var(--accent-color)' }} />
-                </div>
-                <span className="grid-item-name">.. (Parent Folder)</span>
-              </div>
-            )}
-
-            {sortedItems.map((item, idx) => {
-              const isSelected = selectedNames.has(item.name);
-              const isFocused = idx === focusedIndex;
-              const isCopied = clipboard.type === 'copy' && clipboard.paths.includes(item.path);
-              const isCut = clipboard.type === 'cut' && clipboard.paths.includes(item.path);
-              const sizeLabel = viewMode === 'grid-small' ? 'small' : viewMode === 'grid-medium' ? 'medium' : 'large';
-
-              return (
-                <div
-                  key={item.name}
-                  data-name={item.name}
-                  className={`grid-item ${isSelected ? 'selected' : ''} ${isFocused ? 'active-selection' : ''} ${item.isHidden ? 'file-hidden' : ''} ${isCopied ? 'copied-highlight' : ''} ${isCut ? 'cut-highlight' : ''}`}
-                  onClick={(e) => handleItemClick(item, idx, e)}
-                  onDoubleClick={() => handleItemDoubleClick(item)}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, item)}
-                  onContextMenu={(e) => handleRowContextMenu(item, idx, e)}
-                >
-                  <div className="grid-item-thumbnail-wrapper">
-                    {getGridItemMedia(item, sizeLabel)}
-                  </div>
-                  <span className="grid-item-name" title={item.name}>
-                    {(showExtensions || item.isDirectory || !item.ext) ? item.name : item.name.slice(0, item.name.length - item.ext.length) || item.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <FileGrid
+            items={sortedItems}
+            loading={loading}
+            viewMode={viewMode}
+            parentPath={filesData.parentPath}
+            filterQuery={filterQuery}
+            selectedNames={selectedNames}
+            focusedIndex={focusedIndex}
+            clipboard={clipboard}
+            showExtensions={showExtensions}
+            onGoUp={goUp}
+            onItemClick={handleItemClick}
+            onItemDoubleClick={handleItemDoubleClick}
+            onDragStart={handleDragStart}
+            onContextMenu={handleRowContextMenu}
+            getGridItemMedia={getGridItemMedia}
+          />
         )}
       </div>
 

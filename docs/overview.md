@@ -25,11 +25,17 @@ Dự án được phát triển theo cấu trúc 3 tầng:
 ```text
 MonkezFileManager/
 ├── backend/               # Mã nguồn Express local server
-│   ├── server.js          # Điểm khởi chạy server & định nghĩa API
+│   ├── server.js          # Entrypoint mỏng để khởi động server
+│   ├── app.js             # Tạo Express app và đăng ký middleware/routes
+│   ├── routes/            # Các route đã tách dần khỏi app chính
+│   ├── services/          # Logic nghiệp vụ có thể kiểm thử
+│   ├── security/          # Chuẩn hóa path và bảo vệ input nhạy cảm
+│   ├── tests/             # Test backend bằng node --test
 │   ├── contextMenuHelper.js # Module tương tác Registry Windows cho Menu ngữ cảnh
 │   └── package.json       # Dependencies của backend
 ├── frontend/              # Mã nguồn giao diện React
-│   ├── src/               # Các component React & stylesheets
+│   ├── src/               # Components, stores Zustand và stylesheets
+│   ├── tests/             # Smoke test frontend
 │   ├── index.html         # Tệp HTML chính
 │   └── package.json       # Dependencies của frontend
 ├── docs/                  # Thư mục chứa tài liệu (tiếng Việt)

@@ -1,4 +1,3 @@
-import React from 'react';
 import { HardDrive, FolderHeart, Home, Monitor, FileText, Download, Trash2, Plus } from 'lucide-react';
 
 const Sidebar = ({
@@ -24,15 +23,6 @@ const Sidebar = ({
            activePanePath.toLowerCase() === (path + '\\').toLowerCase();
   };
 
-  // Fast Navigation Targets
-  const quickAccess = [
-    { name: 'Home/User Profile', path: navigator.platform.includes('Win') ? 'C:\\Users' : '/', icon: Home },
-    { name: 'Desktop', path: activePanePath.substring(0, activePanePath.indexOf('\\', 10) > 0 ? activePanePath.indexOf('\\', 10) : activePanePath.length), type: 'desktop', icon: Monitor },
-  ];
-
-  // Resolve standard windows paths if possible (otherwise standard fallbacks)
-  const userProfile = 'C:\\Users'; // default guess, will update dynamically on activePanePath
-  
   // Find current username from path if browsing C:\Users\...
   let computedPaths = {
     home: '',

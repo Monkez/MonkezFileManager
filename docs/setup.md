@@ -63,3 +63,16 @@ Bản dựng sẽ được tạo bằng `electron-builder` và lưu trong thư m
   npm run package:electron
   ```
 Bản dựng đóng gói hoàn thiện sẽ được xuất ra thư mục `/dist-electron-release/`.
+
+## 6. Chạy Kiểm Thử
+
+Sau khi cài dependencies, bạn có thể chạy bộ kiểm thử bằng một trong hai cách:
+
+- Nhấn đúp `test.bat` ở thư mục gốc dự án.
+- Hoặc mở terminal tại thư mục gốc và chạy:
+
+```bash
+npm test
+```
+
+Lệnh này sẽ chạy test backend và frontend. Nếu test báo lỗi, hãy đọc log phía trên để biết file hoặc chức năng cần kiểm tra.

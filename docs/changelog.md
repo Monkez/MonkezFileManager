@@ -2,6 +2,22 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.4.0] - 27-06-2026
+
+### Thêm Mới
+- Thêm Task Manager nền cho copy/move, có API `/api/tasks/*`, tiến độ qua Server-Sent Events và UI hiển thị/cancel task.
+- Thêm Zustand store cho task state phía frontend.
+- Thêm test runner `npm test`, `test.bat`, test backend cho path guard và task manager.
+- Thêm tài liệu `docs/architecture.md`, `docs/security.md`, `docs/testing.md`.
+
+### Cải Tiến
+- Tách backend entrypoint: `server.js` chỉ khởi động server, Express app nằm trong `app.js`.
+- Thêm `pathGuard` để chuẩn hóa path và validate tên file/thư mục.
+- Copy/move không ghi đè im lặng khi trùng tên; hệ thống tự tạo tên `- Copy`.
+- Tách render bảng/lưới trong `Pane.jsx` thành `FileTable.jsx` và `FileGrid.jsx`.
+- Khóa backend mặc định vào `127.0.0.1`, giới hạn Host/CORS về localhost.
+- Chuyển ZIP/Unzip sang helper process an toàn hơn, tránh ghép lệnh shell trực tiếp với path người dùng.
+
 ## [1.3.0] - 25-06-2026
 
 ### Thêm Mới

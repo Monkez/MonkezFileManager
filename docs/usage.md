@@ -26,6 +26,12 @@ Khi chọn tệp tin và thực hiện thao tác:
 - **Cắt (Ctrl + X)**: Font chữ và icon của các tệp tin được chọn sẽ được highlight bằng **Màu Đỏ** đồng thời giảm độ mờ (opacity 70%) để biểu thị trạng thái đang chờ di chuyển.
 - **Dán (Ctrl + V)**: Sau khi dán tệp tin thành công, tất cả các khung hình liên quan sẽ được tự động làm mới để cập nhật nội dung đồng bộ.
 
+## Task Manager
+
+Khi copy hoặc di chuyển nhiều tệp/thư mục lớn, ứng dụng sẽ hiển thị bảng **Tasks** ở góc dưới bên phải. Bảng này cho biết trạng thái, phần trăm tiến độ, dung lượng đã xử lý và cho phép hủy tác vụ đang chạy.
+
+Các pane sẽ tự làm mới sau khi task hoàn tất.
+
 ## 5. Bảng Phím Tắt Tiện Ích
 
 | Phím tắt | Thao tác | Mô tả |

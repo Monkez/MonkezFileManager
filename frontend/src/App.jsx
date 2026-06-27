@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Pane from './components/Pane';
 import PreviewPanel from './components/PreviewPanel';
+import TaskPanel from './components/TaskPanel';
+import { useTaskStore } from './stores/useTaskStore';
 import { 
-  FolderPlus, FilePlus, Edit3, Trash2, RefreshCw, 
-  Grid2X2, LayoutGrid, Star, HelpCircle,
+  Trash2, RefreshCw, 
+  Star, HelpCircle,
   Eye, EyeOff, Sidebar as SidebarIcon,
-  Copy, ArrowRightLeft,
   RectangleHorizontal, Columns2, Columns3, Settings,
   ChevronDown, X, Folder, Sliders, FileText,
   Monitor, Download, Image, Video, Music, Home, Cpu, HardDrive, Terminal, Activity
 } from 'lucide-react';
 
 const App = () => {
+  const connectTaskEvents = useTaskStore(state => state.connectTaskEvents);
+  const disconnectTaskEvents = useTaskStore(state => state.disconnectTaskEvents);
+
   // Drives and Bookmarks
   const [drives, setDrives] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
@@ -170,6 +174,11 @@ const App = () => {
     loadSystemPaths();
   }, []);
 
+  useEffect(() => {
+    connectTaskEvents();
+    return () => disconnectTaskEvents();
+  }, [connectTaskEvents, disconnectTaskEvents]);
+
   // Listen to real-time drive plug/unplug events (USB/external disks)
   useEffect(() => {
     const eventSource = new EventSource('/api/watch-drives');
@@ -185,7 +194,7 @@ const App = () => {
       }
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = () => {
       console.warn('[DriveWatcher] Connection error or disconnected. Retrying...');
     };
 
@@ -415,19 +424,28 @@ const App = () => {
         const activeSelection = paneSelections[activePaneId];
         if (!activeSelection || !activeSelection.currentPath) return;
 
+        if (clipboard.paths.length > 0) {
+          const taskType = clipboard.type === 'cut' ? 'move' : 'copy';
+          fetch(`/api/tasks/${taskType}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sources: clipboard.paths, destinationDir: activeSelection.currentPath })
+          }).then(() => {
+            if (taskType === 'move') {
+              setClipboard({ paths: [], type: 'copy' });
+            }
+          }).catch(console.error);
+          return;
+        }
+
         fetch('/api/clipboard/read')
           .then(res => res.json())
           .then(data => {
             if (data.paths && data.paths.length > 0) {
-              fetch('/api/copy', {
+              fetch('/api/tasks/copy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sources: data.paths, destinationDir: activeSelection.currentPath })
-              }).then(() => {
-                // Refresh all panes
-                panes.forEach(pane => {
-                  window.dispatchEvent(new CustomEvent(`refresh-pane-${pane.id}`, { detail: { action: 'refresh' } }));
-                });
               }).catch(console.error);
             }
           })
@@ -437,7 +455,7 @@ const App = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [panes, activePaneId, paneSelections]);
+  }, [panes, activePaneId, paneSelections, clipboard]);
 
   // Modal Submit Handlers
   const handleModalSubmit = async (fields) => {
@@ -469,6 +487,7 @@ const App = () => {
 
     let url = '';
     let body = {};
+    let isTaskOperation = false;
 
     if (type === 'mkdir') {
       url = '/api/mkdir';
@@ -487,8 +506,9 @@ const App = () => {
       body = { paths: data.paths };
     } else if (type === 'transfer' || type === 'shortcut-copy' || type === 'shortcut-move') {
       const isCopy = type === 'shortcut-copy' || (type === 'transfer' && fields.action === 'copy');
-      url = isCopy ? '/api/copy' : '/api/move';
+      url = isCopy ? '/api/tasks/copy' : '/api/tasks/move';
       body = { sources: data.sourcePaths, destinationDir: data.targetPath };
+      isTaskOperation = true;
     }
 
     try {
@@ -502,8 +522,8 @@ const App = () => {
         throw new Error(resData.error || 'Operation failed');
       }
       
-      // Trigger callback if defined
-      if (data.callback) data.callback();
+      // Long-running tasks refresh panes when the task manager reports completion.
+      if (!isTaskOperation && data.callback) data.callback();
       closeModal();
     } catch (err) {
       alert(`Error: ${err.message}`);
@@ -512,7 +532,6 @@ const App = () => {
 
   // Selection summaries
   const activePaneSel = paneSelections[activePaneId];
-  const activeSelectionCount = activePaneSel?.selectedPaths.length || 0;
 
   return (
     <div className={`app-container theme-${theme}`}>
@@ -914,8 +933,6 @@ const App = () => {
               drives={drives}
               onFileDrop={handleFileDrop}
               onSelectionChange={handleSelectionChange}
-              activeItem={activeFile}
-              setActiveItem={setActiveFile}
               openModal={openModal}
               clipboard={clipboard}
               setClipboard={setClipboard}
@@ -1206,6 +1223,8 @@ const App = () => {
           onSubmit={handleModalSubmit} 
         />
       )}
+
+      <TaskPanel />
 
       {/* Bottom Global Status Bar */}
       <footer className="app-status-bar">
