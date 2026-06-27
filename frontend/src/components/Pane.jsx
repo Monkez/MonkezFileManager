@@ -421,15 +421,20 @@ const Pane = ({
       let adjustedX = contextMenu.x;
       let changed = false;
 
-      // Check vertical overflow
-      if (contextMenu.y + rect.height > window.innerHeight) {
-        adjustedY = Math.max(10, window.innerHeight - rect.height - 10);
-        changed = true;
-      }
-      // Check horizontal overflow
-      if (contextMenu.x + rect.width > window.innerWidth) {
-        adjustedX = Math.max(10, window.innerWidth - rect.width - 10);
-        changed = true;
+      if (paneRef.current) {
+        const paneRect = paneRef.current.getBoundingClientRect();
+
+        // Check horizontal overflow relative to the pane width
+        if (contextMenu.x + rect.width > paneRect.width) {
+          adjustedX = Math.max(10, paneRect.width - rect.width - 10);
+          changed = true;
+        }
+
+        // Check vertical overflow relative to the pane height
+        if (contextMenu.y + rect.height > paneRect.height) {
+          adjustedY = Math.max(10, paneRect.height - rect.height - 10);
+          changed = true;
+        }
       }
 
       if (changed) {
@@ -523,11 +528,17 @@ const Pane = ({
     setSelectedNames(new Set());
     setFocusedIndex(-1);
 
-    const rect = e.currentTarget.getBoundingClientRect();
+    const buttonRect = e.currentTarget.getBoundingClientRect();
+    const paneRect = paneRef.current.getBoundingClientRect();
+
+    // Position relative to the pane, aligning the right edge of the menu with the button
+    const x = Math.max(10, buttonRect.right - paneRect.left - 220); 
+    const y = buttonRect.bottom - paneRect.top + 5;
+
     setContextMenu({
       isOpen: true,
-      x: rect.left,
-      y: rect.bottom + 5,
+      x,
+      y,
       targetItem: null
     });
   };
@@ -873,7 +884,21 @@ const Pane = ({
 
   const closeTab = (tabId, e) => {
     e.stopPropagation();
-    if (tabs.length === 1) return; // Must keep at least 1 tab
+    if (tabs.length === 1) {
+      // Reset the single tab to C:\ instead of doing nothing
+      const newTabs = [{
+        id: 'tab-1',
+        name: 'Local Disk (C:)',
+        path: 'C:\\',
+        history: ['C:\\'],
+        historyIndex: 0,
+        isPinned: false
+      }];
+      setTabs(newTabs);
+      setActiveTabId('tab-1');
+      navigateTo('C:\\');
+      return;
+    }
 
     const index = tabs.findIndex(t => t.id === tabId);
     const newTabs = tabs.filter(t => t.id !== tabId);
@@ -1587,7 +1612,7 @@ const Pane = ({
               >
                 <Pin size={10} style={tab.isPinned ? { fill: 'currentColor' } : {}} />
               </button>
-              {!tab.isPinned && tabs.length > 1 && (
+              {!tab.isPinned && (
                 <button
                   className="close-tab-btn"
                   onClick={(e) => closeTab(tab.id, e)}
