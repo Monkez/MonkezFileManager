@@ -848,12 +848,26 @@ const Pane = ({
     }
   };
 
-  // Save pinned tabs to localStorage whenever they change
+  // Save pinned tabs to localStorage whenever they change, but preserve closed ones
   useEffect(() => {
-    const pinned = tabs
-      .filter(t => t.isPinned)
-      .map(t => ({ id: t.id, name: t.name, path: t.path }));
-    localStorage.setItem(`monkez_pinned_tabs_${paneId}`, JSON.stringify(pinned));
+    let saved = [];
+    try {
+      saved = JSON.parse(localStorage.getItem(`monkez_pinned_tabs_${paneId}`) || '[]');
+    } catch (e) {}
+    
+    let pinnedMap = new Map();
+    saved.forEach(t => pinnedMap.set(t.id, t));
+
+    tabs.forEach(t => {
+      if (t.isPinned) {
+        pinnedMap.set(t.id, { id: t.id, name: t.name, path: t.path });
+      } else {
+        pinnedMap.delete(t.id);
+      }
+    });
+
+    const newPinned = Array.from(pinnedMap.values());
+    localStorage.setItem(`monkez_pinned_tabs_${paneId}`, JSON.stringify(newPinned));
   }, [tabs, paneId]);
 
   const togglePinTab = (tabId, e) => {
@@ -1612,14 +1626,12 @@ const Pane = ({
               >
                 <Pin size={10} style={tab.isPinned ? { fill: 'currentColor' } : {}} />
               </button>
-              {!tab.isPinned && (
-                <button
-                  className="close-tab-btn"
-                  onClick={(e) => closeTab(tab.id, e)}
-                >
-                  <X size={10} />
-                </button>
-              )}
+              <button
+                className="close-tab-btn"
+                onClick={(e) => closeTab(tab.id, e)}
+              >
+                <X size={10} />
+              </button>
             </div>
           ))}
           <button
