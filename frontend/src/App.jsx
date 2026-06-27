@@ -3,6 +3,8 @@ import Sidebar from './components/Sidebar';
 import Pane from './components/Pane';
 import PreviewPanel from './components/PreviewPanel';
 import TaskPanel from './components/TaskPanel';
+import CommandPalette from './components/CommandPalette';
+import BatchRenameModal from './components/BatchRenameModal';
 import { useTaskStore } from './stores/useTaskStore';
 import { 
   Trash2, RefreshCw, 
@@ -51,6 +53,7 @@ const App = () => {
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [showBookmarksDropdown, setShowBookmarksDropdown] = useState(false);
   const [showSystemPathsDropdown, setShowSystemPathsDropdown] = useState(false);
   const [showSystemToolsDropdown, setShowSystemToolsDropdown] = useState(false);
@@ -312,6 +315,26 @@ const App = () => {
     window.dispatchEvent(event);
   };
 
+  const refreshAllPanes = () => {
+    window.dispatchEvent(new CustomEvent('refresh-all-panes'));
+  };
+
+  const runHistoryAction = async (action) => {
+    try {
+      const response = await fetch(`/api/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `${action} failed`);
+      }
+      refreshAllPanes();
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
   // Open modals
   const openModal = (type, data = {}) => {
     setModal({
@@ -355,9 +378,7 @@ const App = () => {
       targetPath,
       callback: () => {
         // Refresh all panes after operations
-        panes.forEach(pane => {
-          window.dispatchEvent(new CustomEvent(`refresh-pane-${pane.id}`, { detail: { action: 'refresh' } }));
-        });
+        refreshAllPanes();
       }
     });
   };
@@ -381,9 +402,7 @@ const App = () => {
       targetPaneId: targetPane.id,
       callback: () => {
         // Refresh panes
-        panes.forEach(pane => {
-          window.dispatchEvent(new CustomEvent(`refresh-pane-${pane.id}`, { detail: { action: 'refresh' } }));
-        });
+        refreshAllPanes();
       }
     });
   };
@@ -391,11 +410,23 @@ const App = () => {
   // Listen to global shortcuts (F5, F6, Ctrl+C, Ctrl+X, Ctrl+V) on window object
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setCommandOpen(true);
+        return;
+      }
+
       // Check if user is typing in input boxes
       const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
       if (isInput) return;
 
-      if (e.key === 'F5') {
+      if ((e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z')) {
+        e.preventDefault();
+        runHistoryAction('undo');
+      } else if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+        e.preventDefault();
+        runHistoryAction('redo');
+      } else if (e.key === 'F5') {
         e.preventDefault();
         handleF5F6Shortcut('copy');
       } else if (e.key === 'F6') {
@@ -429,7 +460,7 @@ const App = () => {
           fetch(`/api/tasks/${taskType}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sources: clipboard.paths, destinationDir: activeSelection.currentPath })
+            body: JSON.stringify({ sources: clipboard.paths, destinationDir: activeSelection.currentPath, conflictPolicy: 'keep-both' })
           }).then(() => {
             if (taskType === 'move') {
               setClipboard({ paths: [], type: 'copy' });
@@ -445,7 +476,7 @@ const App = () => {
               fetch('/api/tasks/copy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sources: data.paths, destinationDir: activeSelection.currentPath })
+                body: JSON.stringify({ sources: data.paths, destinationDir: activeSelection.currentPath, conflictPolicy: 'keep-both' })
               }).catch(console.error);
             }
           })
@@ -507,7 +538,11 @@ const App = () => {
     } else if (type === 'transfer' || type === 'shortcut-copy' || type === 'shortcut-move') {
       const isCopy = type === 'shortcut-copy' || (type === 'transfer' && fields.action === 'copy');
       url = isCopy ? '/api/tasks/copy' : '/api/tasks/move';
-      body = { sources: data.sourcePaths, destinationDir: data.targetPath };
+      body = {
+        sources: data.sourcePaths,
+        destinationDir: data.targetPath,
+        conflictPolicy: fields.conflictPolicy || 'keep-both'
+      };
       isTaskOperation = true;
     }
 
@@ -532,6 +567,101 @@ const App = () => {
 
   // Selection summaries
   const activePaneSel = paneSelections[activePaneId];
+  const selectedCount = activePaneSel?.selectedPaths?.length || 0;
+  const openBatchRename = () => {
+    if (!activePaneSel?.currentPath || selectedCount === 0) {
+      alert('Hãy chọn ít nhất một tệp hoặc thư mục trước khi đổi tên hàng loạt.');
+      return;
+    }
+    openModal('batch-rename', {
+      currentPath: activePaneSel.currentPath,
+      paths: activePaneSel.selectedPaths,
+      callback: refreshAllPanes
+    });
+  };
+
+  const commandList = [
+    {
+      id: 'new-folder',
+      label: 'Tạo thư mục mới',
+      description: activePaneSel?.currentPath || 'Pane hiện tại',
+      keywords: ['folder', 'mkdir', 'new'],
+      run: () => activePaneSel?.currentPath && openModal('mkdir', { currentPath: activePaneSel.currentPath, callback: handleRefresh })
+    },
+    {
+      id: 'new-file',
+      label: 'Tạo tệp mới',
+      description: activePaneSel?.currentPath || 'Pane hiện tại',
+      keywords: ['file', 'mkfile', 'new'],
+      run: () => activePaneSel?.currentPath && openModal('mkfile', { currentPath: activePaneSel.currentPath, callback: handleRefresh })
+    },
+    {
+      id: 'batch-rename',
+      label: 'Đổi tên hàng loạt',
+      description: selectedCount > 0 ? `${selectedCount} mục đã chọn` : 'Chọn tệp/thư mục trước',
+      keywords: ['rename', 'batch', 'bulk'],
+      disabled: selectedCount === 0,
+      run: openBatchRename
+    },
+    {
+      id: 'undo',
+      label: 'Undo thao tác file',
+      description: 'Hoàn tác thao tác tạo, đổi tên, copy/move gần nhất',
+      keywords: ['undo', 'history'],
+      run: () => runHistoryAction('undo')
+    },
+    {
+      id: 'redo',
+      label: 'Redo thao tác file',
+      description: 'Làm lại thao tác vừa undo',
+      keywords: ['redo', 'history'],
+      run: () => runHistoryAction('redo')
+    },
+    {
+      id: 'refresh',
+      label: 'Làm mới pane hiện tại',
+      description: activePaneSel?.currentPath || '',
+      keywords: ['reload', 'refresh'],
+      run: handleRefresh
+    },
+    {
+      id: 'bookmark',
+      label: 'Thêm bookmark cho thư mục hiện tại',
+      description: activePaneSel?.currentPath || '',
+      keywords: ['bookmark', 'star'],
+      run: handleAddBookmark
+    },
+    {
+      id: 'layout-1',
+      label: 'Chuyển sang 1 pane',
+      keywords: ['layout', 'pane'],
+      run: () => handleLayoutChange(1)
+    },
+    {
+      id: 'layout-2',
+      label: 'Chuyển sang 2 pane',
+      keywords: ['layout', 'pane'],
+      run: () => handleLayoutChange(2)
+    },
+    {
+      id: 'layout-3',
+      label: 'Chuyển sang 3 pane',
+      keywords: ['layout', 'pane'],
+      run: () => handleLayoutChange(3)
+    },
+    {
+      id: 'toggle-hidden',
+      label: showHiddenFiles ? 'Ẩn file ẩn' : 'Hiện file ẩn',
+      keywords: ['hidden', 'view'],
+      run: () => handleShowHiddenToggle(!showHiddenFiles)
+    },
+    {
+      id: 'toggle-extensions',
+      label: showExtensions ? 'Ẩn đuôi file' : 'Hiện đuôi file',
+      keywords: ['extension', 'view'],
+      run: () => handleShowExtensionsToggle(!showExtensions)
+    }
+  ];
 
   return (
     <div className={`app-container theme-${theme}`}>
@@ -564,6 +694,10 @@ const App = () => {
           <button className="toolbar-btn" onClick={handleRefresh} title="Reload active folder lists">
             <RefreshCw size={15} />
             <span>Refresh</span>
+          </button>
+          <button className="toolbar-btn" onClick={() => setCommandOpen(true)} title="Command Palette (Ctrl+Shift+P)">
+            <Terminal size={15} />
+            <span>Command</span>
           </button>
 
           
@@ -1215,7 +1349,15 @@ const App = () => {
       )}
 
       {/* Reusable Modal Dialog Overlay */}
-      {modal.isOpen && (
+      {modal.isOpen && modal.type === 'batch-rename' && (
+        <BatchRenameModal
+          data={modal.data}
+          onClose={closeModal}
+          onApplied={() => modal.data.callback?.()}
+        />
+      )}
+
+      {modal.isOpen && modal.type !== 'batch-rename' && (
         <Modal 
           type={modal.type} 
           data={modal.data} 
@@ -1223,6 +1365,12 @@ const App = () => {
           onSubmit={handleModalSubmit} 
         />
       )}
+
+      <CommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        commands={commandList}
+      />
 
       <TaskPanel />
 
@@ -1259,8 +1407,10 @@ const App = () => {
 // Modal Subcomponent
 const Modal = ({ type, data, onClose, onSubmit }) => {
   const [inputValue, setInputValue] = useState('');
+  const [conflictPolicy, setConflictPolicy] = useState('keep-both');
 
   useEffect(() => {
+    setConflictPolicy('keep-both');
     if (type === 'rename') {
       setInputValue(data.oldName || '');
     } else if (type === 'bookmark') {
@@ -1272,7 +1422,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ name: inputValue });
+    onSubmit({ name: inputValue, conflictPolicy });
   };
 
   const getModalTitle = () => {
@@ -1341,6 +1491,15 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
             <p style={{ fontWeight: 600, color: 'var(--text-main)', marginTop: 4, wordBreak: 'break-all' }}>
               {data.targetPath}
             </p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+              Conflict resolver
+              <select className="modal-input" value={conflictPolicy} onChange={(e) => setConflictPolicy(e.target.value)}>
+                <option value="keep-both">Keep both: tự tạo tên "Copy"</option>
+                <option value="replace">Replace: ghi đè đích</option>
+                <option value="skip">Skip: bỏ qua mục bị trùng</option>
+                <option value="error">Error: dừng và báo lỗi khi trùng</option>
+              </select>
+            </label>
             <div className="modal-actions" style={{ marginTop: 16 }}>
               <button 
                 type="button" 
@@ -1352,7 +1511,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
               <button 
                 type="button" 
                 className="modal-btn modal-btn-primary" 
-                onClick={() => onSubmit({ action: 'copy' })}
+                onClick={() => onSubmit({ action: 'copy', conflictPolicy })}
               >
                 Copy Items
               </button>
@@ -1360,7 +1519,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
                 type="button" 
                 className="modal-btn modal-btn-primary" 
                 style={{ background: 'var(--success-color)' }}
-                onClick={() => onSubmit({ action: 'move' })}
+                onClick={() => onSubmit({ action: 'move', conflictPolicy })}
               >
                 Move Items
               </button>
@@ -1375,6 +1534,15 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
             <p style={{ fontWeight: 600, color: 'var(--text-main)', marginTop: 4, wordBreak: 'break-all' }}>
               {data.targetPath}
             </p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+              Conflict resolver
+              <select className="modal-input" value={conflictPolicy} onChange={(e) => setConflictPolicy(e.target.value)}>
+                <option value="keep-both">Keep both: tự tạo tên "Copy"</option>
+                <option value="replace">Replace: ghi đè đích</option>
+                <option value="skip">Skip: bỏ qua mục bị trùng</option>
+                <option value="error">Error: dừng và báo lỗi khi trùng</option>
+              </select>
+            </label>
           </div>
         )}
 

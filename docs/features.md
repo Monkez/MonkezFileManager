@@ -67,3 +67,20 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 10. Thanh Công Cụ Hiển Thị (View Toggles)
 - Bật/tắt hiển thị tệp tin và thư mục ẩn (Hidden Items) qua biểu tượng con mắt trên thanh công cụ chính.
 - Bật/tắt hiển thị phần mở rộng của tệp tin (File Extensions) qua biểu tượng văn bản. Cài đặt tự động ghi nhớ cho các phiên bản làm việc sau.
+
+## 11. Undo/Redo, Conflict Resolver và Batch Rename
+- Hỗ trợ Undo/Redo cho các thao tác file thường dùng như tạo thư mục, tạo tệp, đổi tên, copy, move và đổi tên hàng loạt.
+- Khi copy/move có thể chọn cách xử lý trùng tên: giữ cả hai, ghi đè, bỏ qua hoặc báo lỗi.
+- Batch Rename có màn hình preview trước khi áp dụng, hỗ trợ pattern `{name}`, `{index}`, `{ext}`, tìm/thay thế, chuyển chữ thường và chữ hoa.
+- Hệ thống tự phát hiện tên mới bị trùng để tránh thao tác rename dở dang.
+
+## 12. Task Manager Nâng Cao
+- Các tác vụ copy/move lớn chạy nền và hiển thị tiến độ theo thời gian thực.
+- Hiển thị tốc độ xử lý, ETA, số mục đã xử lý và trạng thái hiện tại.
+- Cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
+- Khi task hoàn tất, thao tác copy/move được ghi vào lịch sử để có thể undo/redo.
+
+## 13. Search Nâng Cao và Command Palette
+- Ô search trong mỗi pane hỗ trợ tìm sâu bằng `Enter`, kèm bộ lọc theo đuôi file, loại file/thư mục, dung lượng, ngày sửa và nội dung file text/code.
+- Quick Command Palette mở bằng `Ctrl+Shift+P` hoặc nút **Command**, giúp gọi nhanh các lệnh thường dùng mà không cần rời bàn phím.
+- Có thể kéo thả tab trên thanh tabs để đổi vị trí, giúp sắp xếp phiên làm việc gọn hơn.

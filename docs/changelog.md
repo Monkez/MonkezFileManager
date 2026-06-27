@@ -2,6 +2,35 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.5.0] - 28-06-2026
+
+### Thêm Mới
+- Thêm Undo/Redo cho các thao tác file quan trọng: tạo thư mục, tạo tệp, đổi tên, copy, move và batch rename.
+- Thêm Conflict Resolver cho copy/move với các chế độ: giữ cả hai, ghi đè, bỏ qua mục trùng, hoặc báo lỗi khi trùng tên.
+- Thêm Batch Rename Tool có preview trước khi áp dụng, hỗ trợ pattern `{name}`, `{index}`, `{ext}`, tìm/thay thế, lowercase và uppercase.
+- Thêm Quick Command Palette mở bằng `Ctrl+Shift+P` hoặc nút **Command** trên toolbar.
+- Thêm Search nâng cao: lọc theo `ext:`, `type:`, `content:`, `min:`, `max:`, `after:` và `before:`.
+- Thêm kéo thả tab để đổi vị trí tab trực tiếp trên thanh tabs của từng pane.
+
+### Cải Tiến
+- Task Manager hiển thị tốc độ xử lý, ETA, hỗ trợ pause/resume/cancel cho tác vụ nền.
+- Copy/move task ghi lịch sử để có thể undo/redo sau khi hoàn tất.
+- Batch Rename phát hiện xung đột tên mới giữa chính các mục được chọn, tránh rename dở dang.
+- Bổ sung API `/api/history`, `/api/undo`, `/api/redo`, `/api/batch-rename/preview`, `/api/batch-rename/apply`.
+- Bổ sung test cho batch rename conflict và undo/redo history, nâng tổng số test backend lên 10.
+
+## [1.4.1] - 28-06-2026
+
+### Cải Tiến
+- Tách nhóm API thao tác file (`mkdir`, `mkfile`, `rename`, `delete`, `copy`, `move`, `foldersize`) sang `routes/fileOperations.routes.js` và `services/fileOperations.js`.
+- Bổ sung test cho service thao tác file, nâng số test backend lên 8.
+- Giảm rủi ro command injection cho `open`, `reveal`, `open-with` và `launch-tool` bằng cách chuyển sang `spawn` với mảng arguments.
+- Tạm khóa dynamic shell command từ registry context menu cho tới khi có parser an toàn.
+
+### Bảo Mật
+- Chuẩn hóa path cho `open`, `reveal` và `open-with`.
+- Loại bỏ nhiều vị trí ghép chuỗi lệnh shell với path người dùng.
+
 ## [1.4.0] - 27-06-2026
 
 ### Thêm Mới

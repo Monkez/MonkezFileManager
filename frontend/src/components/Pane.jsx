@@ -876,6 +876,31 @@ const Pane = ({
     }
   };
 
+  const handleTabDragStart = (e, tabId) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/monkez-tab', tabId);
+  };
+
+  const handleTabDrop = (e, targetTabId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const sourceTabId = e.dataTransfer.getData('application/monkez-tab');
+    if (!sourceTabId || sourceTabId === targetTabId) return;
+
+    setTabs(prevTabs => {
+      const sourceIndex = prevTabs.findIndex(tab => tab.id === sourceTabId);
+      const targetIndex = prevTabs.findIndex(tab => tab.id === targetTabId);
+      if (sourceIndex < 0 || targetIndex < 0) return prevTabs;
+
+      const reordered = [...prevTabs];
+      const [movedTab] = reordered.splice(sourceIndex, 1);
+      reordered.splice(targetIndex, 0, movedTab);
+      return reordered;
+    });
+  };
+
   // Sorting Handler
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -1405,6 +1430,30 @@ const Pane = ({
     }
   };
 
+  const buildSearchParams = (rawQuery) => {
+    const params = new URLSearchParams({ path: filesData.currentPath });
+    let remaining = rawQuery;
+    const tokenPattern = /(content|ext|type|min|max|after|before):(?:"([^"]*)"|(\S+))/gi;
+    let match;
+
+    while ((match = tokenPattern.exec(rawQuery)) !== null) {
+      const key = match[1].toLowerCase();
+      const value = match[2] ?? match[3] ?? '';
+      remaining = remaining.replace(match[0], ' ');
+
+      if (key === 'min') params.set('minSize', value);
+      else if (key === 'max') params.set('maxSize', value);
+      else if (key === 'after') params.set('modifiedAfter', value);
+      else if (key === 'before') params.set('modifiedBefore', value);
+      else params.set(key, value);
+    }
+
+    const query = remaining.trim().replace(/\s+/g, ' ');
+    if (query) params.set('query', query);
+    params.set('maxResults', '500');
+    return params;
+  };
+
   const handleFilterKeyDown = async (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1416,7 +1465,8 @@ const Pane = ({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/search?path=${encodeURIComponent(filesData.currentPath)}&query=${encodeURIComponent(filterQuery)}`);
+        const searchParams = buildSearchParams(filterQuery);
+        const res = await fetch(`/api/search?${searchParams.toString()}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Search failed');
         setSearchResults(data);
@@ -1559,6 +1609,13 @@ const Pane = ({
             <div
               key={tab.id}
               className={`pane-tab ${activeTabId === tab.id ? 'active-tab' : ''} ${tab.isPinned ? 'pinned-tab' : ''}`}
+              draggable
+              onDragStart={(e) => handleTabDragStart(e, tab.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => handleTabDrop(e, tab.id)}
               onClick={(e) => {
                 e.stopPropagation();
                 onActivate();
@@ -1721,7 +1778,7 @@ const Pane = ({
           <Search size={14} className="filter-icon" />
           <input
             type="text"
-            placeholder="Quick Filter (Enter to search deep)..."
+            placeholder='Filter, Enter search: report ext:pdf type:file content:"invoice"'
             className="filter-input"
             value={filterQuery}
             onChange={(e) => {

@@ -11,10 +11,13 @@ Backend hiện được tách thành entrypoint mỏng và các module chuyên t
 - `backend/security/pathGuard.js`: chuẩn hóa và kiểm tra đường dẫn, tên file/thư mục.
 - `backend/services/taskManager.js`: quản lý tác vụ nền như copy/move thư mục lớn.
 - `backend/routes/tasks.routes.js`: API quản lý task.
+- `backend/services/fileOperations.js`: logic tạo/xóa/đổi tên/copy/move/tính dung lượng thư mục.
+- `backend/routes/fileOperations.routes.js`: route cho nhóm thao tác file.
+- `backend/services/operationHistory.js`: lưu lịch sử thao tác file để phục vụ Undo/Redo trong phiên chạy hiện tại.
+- `backend/routes/history.routes.js`: API `/api/history`, `/api/undo`, `/api/redo`.
 
 Trong các bước refactor tiếp theo, các nhóm route còn trong `app.js` nên tiếp tục được tách ra:
 
-- `routes/files.routes.js`
 - `routes/archive.routes.js`
 - `routes/bookmarks.routes.js`
 - `routes/system.routes.js`
@@ -27,7 +30,9 @@ Logic nghiệp vụ nên nằm trong `services/`, controller chỉ đọc reques
 Frontend bắt đầu có lớp state dùng Zustand cho các tác vụ nền:
 
 - `frontend/src/stores/useTaskStore.js`: nhận task qua SSE, cập nhật danh sách task, hỗ trợ cancel.
-- `frontend/src/components/TaskPanel.jsx`: hiển thị tiến độ copy/move.
+- `frontend/src/components/TaskPanel.jsx`: hiển thị tiến độ copy/move, tốc độ, ETA, pause/resume/cancel.
+- `frontend/src/components/CommandPalette.jsx`: bảng lệnh nhanh cho các thao tác thường dùng.
+- `frontend/src/components/BatchRenameModal.jsx`: giao diện đổi tên hàng loạt có preview.
 
 `Pane.jsx` đã bắt đầu được component hóa:
 
@@ -44,6 +49,22 @@ Các thao tác copy/move dài dùng API:
 - `POST /api/tasks/move`
 - `GET /api/tasks`
 - `GET /api/tasks/events`
+- `POST /api/tasks/:id/pause`
+- `POST /api/tasks/:id/resume`
 - `POST /api/tasks/:id/cancel`
 
 Backend gửi tiến độ qua Server-Sent Events. Frontend tự refresh các pane khi task kết thúc.
+
+## 4. Luồng Undo/Redo và Batch Rename
+
+Các thao tác file quan trọng sẽ ghi entry vào `OperationHistory`. Mỗi entry gồm danh sách bước `undo` và `redo`. Hiện tại lịch sử được lưu trong bộ nhớ của tiến trình backend, vì vậy sẽ mất khi tắt ứng dụng.
+
+Các API chính:
+
+- `GET /api/history`
+- `POST /api/undo`
+- `POST /api/redo`
+- `POST /api/batch-rename/preview`
+- `POST /api/batch-rename/apply`
+
+Batch Rename luôn preview trước khi apply và kiểm tra xung đột tên mới, bao gồm cả xung đột với file đã tồn tại và xung đột giữa các mục đang được đổi tên cùng lúc.

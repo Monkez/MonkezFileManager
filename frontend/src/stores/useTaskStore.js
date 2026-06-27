@@ -79,5 +79,27 @@ export const useTaskStore = create((set, get) => ({
       throw new Error(data.error || 'Failed to cancel task');
     }
     get().upsertTask(data);
+  },
+
+  pauseTask: async (taskId) => {
+    const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/pause`, {
+      method: 'POST'
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to pause task');
+    }
+    get().upsertTask(data);
+  },
+
+  resumeTask: async (taskId) => {
+    const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/resume`, {
+      method: 'POST'
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to resume task');
+    }
+    get().upsertTask(data);
   }
 }));

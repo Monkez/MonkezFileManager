@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Loader2, XCircle, Ban, X } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, Ban, X, Pause, Play } from 'lucide-react';
 import { useTaskStore } from '../stores/useTaskStore';
 
 const formatBytes = (bytes = 0) => {
@@ -16,11 +16,21 @@ const getTaskIcon = (status) => {
   return <Loader2 size={14} className="task-status-icon spinning" />;
 };
 
+const formatDuration = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '--';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remain = seconds % 60;
+  return `${minutes}m ${remain}s`;
+};
+
 const TaskPanel = () => {
   const [collapsed, setCollapsed] = useState(false);
   const tasks = useTaskStore(state => state.tasks);
   const connected = useTaskStore(state => state.connected);
   const cancelTask = useTaskStore(state => state.cancelTask);
+  const pauseTask = useTaskStore(state => state.pauseTask);
+  const resumeTask = useTaskStore(state => state.resumeTask);
 
   const visibleTasks = useMemo(() => tasks.slice(0, 8), [tasks]);
   const activeCount = tasks.filter(task => ['queued', 'running', 'canceling'].includes(task.status)).length;
@@ -43,7 +53,9 @@ const TaskPanel = () => {
       {!collapsed && (
         <div className="task-panel-body">
           {visibleTasks.map(task => {
-            const canCancel = ['queued', 'running'].includes(task.status);
+            const canCancel = ['queued', 'running', 'paused'].includes(task.status);
+            const canPause = task.status === 'running';
+            const canResume = task.status === 'paused';
             return (
               <div className="task-row" key={task.id}>
                 <div className="task-row-main">
@@ -54,8 +66,35 @@ const TaskPanel = () => {
                     </div>
                     <div className="task-subtitle" title={task.currentPath || task.destinationDir}>
                       {task.status} · {formatBytes(task.processedBytes)} / {formatBytes(task.totalBytes)}
+                      {task.speedBps > 0 && ` · ${formatBytes(task.speedBps)}/s · ETA ${formatDuration(task.etaSeconds)}`}
                     </div>
                   </div>
+                  {canPause && (
+                    <button
+                      type="button"
+                      className="task-cancel-btn"
+                      title="Pause task"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        pauseTask(task.id).catch(err => alert(err.message));
+                      }}
+                    >
+                      <Pause size={13} />
+                    </button>
+                  )}
+                  {canResume && (
+                    <button
+                      type="button"
+                      className="task-cancel-btn"
+                      title="Resume task"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        resumeTask(task.id).catch(err => alert(err.message));
+                      }}
+                    >
+                      <Play size={13} />
+                    </button>
+                  )}
                   {canCancel && (
                     <button
                       type="button"

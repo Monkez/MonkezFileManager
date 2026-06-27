@@ -8,17 +8,20 @@ const { exec, spawn } = require('child_process');
 const { getContextMenu } = require('./contextMenuHelper');
 const {
   normalizeInputPath,
-  resolveChildPath,
   validatePathArray,
   sendPathError
 } = require('./security/pathGuard');
 const { TaskManager } = require('./services/taskManager');
+const { OperationHistory } = require('./services/operationHistory');
 const { createTasksRouter } = require('./routes/tasks.routes');
+const { createFileOperationsRouter } = require('./routes/fileOperations.routes');
+const { createHistoryRouter } = require('./routes/history.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '127.0.0.1';
-const taskManager = new TaskManager();
+const operationHistory = new OperationHistory();
+const taskManager = new TaskManager({ operationHistory });
 
 const allowedOrigins = new Set([
   `http://localhost:3000`,
@@ -47,6 +50,8 @@ app.use(cors({
   }
 }));
 app.use(express.json());
+app.use('/api', createFileOperationsRouter({ operationHistory }));
+app.use('/api', createHistoryRouter(operationHistory));
 app.use('/api/tasks', createTasksRouter(taskManager));
 
 // Bookmark JSON storage path - support Electron userData path and packaged writeable path
@@ -154,6 +159,18 @@ const runProcess = (command, args, callback) => {
     }
     callback(null, stdout, stderr);
   });
+};
+
+const launchDetached = (command, args = [], options = {}) => {
+  const child = spawn(command, args, {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: false,
+    shell: false,
+    ...options
+  });
+  child.unref();
+  return child;
 };
 
 // ----------------------------------------------------
@@ -300,57 +317,53 @@ app.get('/api/system-paths', (req, res) => {
 // Launch System Utility Tools API
 app.post('/api/launch-tool', (req, res) => {
   const { tool } = req.body;
-  let target = '';
+  let launchSpec = null;
 
   switch (tool) {
     case 'control-panel':
-      target = 'control';
+      launchSpec = ['control.exe', []];
       break;
     case 'settings':
-      target = 'ms-settings:';
+      launchSpec = ['explorer.exe', ['ms-settings:']];
       break;
     case 'add-remove-programs':
-      target = 'ms-settings:appsfeatures';
+      launchSpec = ['explorer.exe', ['ms-settings:appsfeatures']];
       break;
     case 'task-manager':
-      target = 'taskmgr';
+      launchSpec = ['taskmgr.exe', []];
       break;
     case 'disk-management':
-      target = 'diskmgmt.msc';
+      launchSpec = ['mmc.exe', ['diskmgmt.msc']];
       break;
     case 'device-manager':
-      target = 'devmgmt.msc';
+      launchSpec = ['mmc.exe', ['devmgmt.msc']];
       break;
     case 'registry-editor':
-      target = 'regedit';
+      launchSpec = ['regedit.exe', []];
       break;
     case 'command-prompt':
-      target = 'cmd';
+      launchSpec = ['cmd.exe', []];
       break;
     case 'powershell':
-      target = 'powershell';
+      launchSpec = ['powershell.exe', []];
       break;
     case 'services':
-      target = 'services.msc';
+      launchSpec = ['mmc.exe', ['services.msc']];
       break;
     case 'resource-monitor':
-      target = 'resmon';
+      launchSpec = ['resmon.exe', []];
       break;
     default:
       return res.status(400).json({ error: 'Unknown system utility tool' });
   }
 
-  // Prepend 'start ' to launch GUI as a detached process and exit cmd.exe immediately
-  const command = `start ${target}`;
-
-  exec(command, (error) => {
-    if (error) {
-      console.error(`Failed to launch tool ${tool}:`, error);
-    }
-  });
-
-  // Return success immediately to the client
-  res.json({ success: true });
+  try {
+    launchDetached(launchSpec[0], launchSpec[1]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`Failed to launch tool ${tool}:`, err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Watch logical drives endpoint (SSE)
@@ -794,222 +807,6 @@ app.get('/api/watch', (req, res) => {
   });
 });
 
-// 3. Create folder
-app.post('/api/mkdir', (req, res) => {
-  const { currentPath, name } = req.body;
-  if (!currentPath || !name) {
-    return res.status(400).json({ error: 'Missing currentPath or name' });
-  }
-
-  try {
-    const targetPath = resolveChildPath(currentPath, name);
-    if (fs.existsSync(targetPath)) {
-      return res.status(400).json({ error: 'Folder already exists' });
-    }
-    fs.mkdirSync(targetPath);
-    res.json({ success: true, path: targetPath });
-  } catch (err) {
-    sendPathError(res, err);
-  }
-});
-
-// 4. Create blank file
-app.post('/api/mkfile', (req, res) => {
-  const { currentPath, name } = req.body;
-  if (!currentPath || !name) {
-    return res.status(400).json({ error: 'Missing currentPath or name' });
-  }
-
-  try {
-    const targetPath = resolveChildPath(currentPath, name);
-    if (fs.existsSync(targetPath)) {
-      return res.status(400).json({ error: 'File already exists' });
-    }
-    fs.writeFileSync(targetPath, '');
-    res.json({ success: true, path: targetPath });
-  } catch (err) {
-    sendPathError(res, err);
-  }
-});
-
-// 5. Rename item
-app.post('/api/rename', (req, res) => {
-  const { currentPath, oldName, newName } = req.body;
-  if (!currentPath || !oldName || !newName) {
-    return res.status(400).json({ error: 'Missing required parameters' });
-  }
-
-  try {
-    const oldPath = resolveChildPath(currentPath, oldName);
-    const newPath = resolveChildPath(currentPath, newName);
-    if (!fs.existsSync(oldPath)) {
-      return res.status(404).json({ error: 'Source file/folder does not exist' });
-    }
-    if (fs.existsSync(newPath)) {
-      return res.status(400).json({ error: 'Destination already exists' });
-    }
-    fs.renameSync(oldPath, newPath);
-    res.json({ success: true });
-  } catch (err) {
-    sendPathError(res, err);
-  }
-});
-
-// 6. Delete file/folder
-app.post('/api/delete', async (req, res) => {
-  let paths;
-  try {
-    paths = validatePathArray(req.body.paths);
-  } catch (err) {
-    return sendPathError(res, err);
-  }
-  const errors = [];
-  const isElectron = process.versions.electron !== undefined;
-  
-  for (const itemPath of paths) {
-    try {
-      if (fs.existsSync(itemPath)) {
-        if (isElectron) {
-          const { shell } = require('electron');
-          await shell.trashItem(itemPath);
-        } else {
-          // Fallback to permanent delete if not running in electron
-          fs.rmSync(itemPath, { recursive: true, force: true });
-        }
-      }
-    } catch (err) {
-      errors.push({ path: itemPath, error: err.message });
-    }
-  }
-
-  if (errors.length > 0) {
-    res.status(207).json({ success: false, errors });
-  } else {
-    res.json({ success: true });
-  }
-});
-
-// 6b. Delete Permanent file/folder
-app.post('/api/delete-permanent', (req, res) => {
-  let paths;
-  try {
-    paths = validatePathArray(req.body.paths);
-  } catch (err) {
-    return sendPathError(res, err);
-  }
-  const errors = [];
-  for (const itemPath of paths) {
-    try {
-      if (fs.existsSync(itemPath)) {
-        fs.rmSync(itemPath, { recursive: true, force: true });
-      }
-    } catch (err) {
-      errors.push({ path: itemPath, error: err.message });
-    }
-  }
-
-  if (errors.length > 0) {
-    res.status(207).json({ success: false, errors });
-  } else {
-    res.json({ success: true });
-  }
-});
-
-// Helper for cross-drive copy-then-delete moving
-const moveItem = (src, dest) => {
-  // Check if they are on different drives
-  const srcDrive = path.parse(src).root;
-  const destDrive = path.parse(dest).root;
-
-  if (srcDrive.toLowerCase() === destDrive.toLowerCase()) {
-    // Same drive - can just rename
-    fs.renameSync(src, dest);
-  } else {
-    // Cross-drive - copy and delete
-    fs.cpSync(src, dest, { recursive: true });
-    fs.rmSync(src, { recursive: true, force: true });
-  }
-};
-
-const getAvailableDestination = (destinationDir, baseName) => {
-  let candidate = path.join(destinationDir, baseName);
-  if (!fs.existsSync(candidate)) return candidate;
-
-  const parsed = path.parse(baseName);
-  let index = 1;
-  do {
-    const suffix = index === 1 ? ' - Copy' : ` - Copy ${index}`;
-    candidate = path.join(destinationDir, `${parsed.name}${suffix}${parsed.ext}`);
-    index += 1;
-  } while (fs.existsSync(candidate));
-
-  return candidate;
-};
-
-// 7. Copy file/folder
-app.post('/api/copy', (req, res) => {
-  let sources;
-  let destinationDir;
-  try {
-    sources = validatePathArray(req.body.sources);
-    destinationDir = normalizeInputPath(req.body.destinationDir, {
-      mustExist: true,
-      directory: true
-    });
-  } catch (err) {
-    return sendPathError(res, err);
-  }
-
-  const errors = [];
-  for (const src of sources) {
-    try {
-      const name = path.basename(src);
-      const dest = getAvailableDestination(destinationDir, name);
-      fs.cpSync(src, dest, { recursive: true, force: false, errorOnExist: true });
-    } catch (err) {
-      errors.push({ source: src, error: err.message });
-    }
-  }
-
-  if (errors.length > 0) {
-    res.status(207).json({ success: false, errors });
-  } else {
-    res.json({ success: true });
-  }
-});
-
-// 8. Move file/folder
-app.post('/api/move', (req, res) => {
-  let sources;
-  let destinationDir;
-  try {
-    sources = validatePathArray(req.body.sources);
-    destinationDir = normalizeInputPath(req.body.destinationDir, {
-      mustExist: true,
-      directory: true
-    });
-  } catch (err) {
-    return sendPathError(res, err);
-  }
-
-  const errors = [];
-  for (const src of sources) {
-    try {
-      const name = path.basename(src);
-      const dest = getAvailableDestination(destinationDir, name);
-      moveItem(src, dest);
-    } catch (err) {
-      errors.push({ source: src, error: err.message });
-    }
-  }
-
-  if (errors.length > 0) {
-    res.status(207).json({ success: false, errors });
-  } else {
-    res.json({ success: true });
-  }
-});
-
 // 9. File Preview API (Text / Code / Metadata)
 app.get('/api/preview', (req, res) => {
   try {
@@ -1413,17 +1210,54 @@ app.post('/api/extract', (req, res) => {
 });
 
 // Recursive search helper
-const recursiveSearch = (dir, query, results = [], maxResults = 100) => {
+const isLikelyTextFile = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  return ['.txt', '.md', '.json', '.js', '.jsx', '.ts', '.tsx', '.css', '.html', '.xml', '.yml', '.yaml', '.ini', '.cfg', '.log', '.csv'].includes(ext);
+};
+
+const fileContainsText = (filePath, contentQuery) => {
+  if (!contentQuery || !isLikelyTextFile(filePath)) return false;
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buffer = Buffer.alloc(65536);
+    const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, 0);
+    fs.closeSync(fd);
+    return buffer.toString('utf8', 0, bytesRead).toLowerCase().includes(contentQuery.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+const matchesAdvancedSearch = (fullPath, file, stats, options) => {
+  const name = file.name.toLowerCase();
+  const query = options.query.toLowerCase();
+  const ext = file.isDirectory() ? '' : path.extname(file.name).toLowerCase();
+
+  if (query && !name.includes(query)) return false;
+  if (options.ext && ext !== options.ext) return false;
+  if (options.type === 'file' && file.isDirectory()) return false;
+  if (options.type === 'folder' && !file.isDirectory()) return false;
+  if (!file.isDirectory() && options.minSize !== null && stats.size < options.minSize) return false;
+  if (!file.isDirectory() && options.maxSize !== null && stats.size > options.maxSize) return false;
+  if (options.modifiedAfter && stats.mtime < options.modifiedAfter) return false;
+  if (options.modifiedBefore && stats.mtime > options.modifiedBefore) return false;
+  if (options.content && file.isDirectory()) return false;
+  if (options.content && !fileContainsText(fullPath, options.content)) return false;
+
+  return true;
+};
+
+const recursiveSearch = (dir, options, results = []) => {
+  const maxResults = options.maxResults;
   if (results.length >= maxResults) return results;
   try {
     const list = fs.readdirSync(dir, { withFileTypes: true });
     for (const file of list) {
       if (results.length >= maxResults) break;
       const fullPath = path.join(dir, file.name);
-      
-      // Match query
-      if (file.name.toLowerCase().includes(query.toLowerCase())) {
-        const stats = getFileStats(fullPath);
+
+      const stats = getFileStats(fullPath);
+      if (matchesAdvancedSearch(fullPath, file, stats, options)) {
         results.push({
           name: file.name,
           path: fullPath,
@@ -1436,7 +1270,7 @@ const recursiveSearch = (dir, query, results = [], maxResults = 100) => {
       }
 
       if (file.isDirectory() && !file.name.startsWith('.') && !file.name.startsWith('$')) {
-        recursiveSearch(fullPath, query, results, maxResults);
+        recursiveSearch(fullPath, options, results);
       }
     }
   } catch (err) {
@@ -1447,9 +1281,9 @@ const recursiveSearch = (dir, query, results = [], maxResults = 100) => {
 
 // 14. Search API
 app.get('/api/search', async (req, res) => {
-  const { path: targetPath, query } = req.query;
-  if (!targetPath || !query) {
-    return res.status(400).json({ error: 'Missing path or query' });
+  const { path: targetPath, query = '', content = '', type = 'any' } = req.query;
+  if (!targetPath || (!query && !content)) {
+    return res.status(400).json({ error: 'Missing path or search term' });
   }
 
   let resolvedPath;
@@ -1479,7 +1313,18 @@ app.get('/api/search', async (req, res) => {
     if (!fs.existsSync(resolvedPath)) {
       return res.status(404).json({ error: 'Search path does not exist' });
     }
-    const results = recursiveSearch(resolvedPath, query);
+    const options = {
+      query: String(query || ''),
+      content: String(content || ''),
+      ext: req.query.ext ? String(req.query.ext).toLowerCase().replace(/^\*?\.?/, '.') : '',
+      type: ['file', 'folder'].includes(type) ? type : 'any',
+      minSize: req.query.minSize ? Number(req.query.minSize) : null,
+      maxSize: req.query.maxSize ? Number(req.query.maxSize) : null,
+      modifiedAfter: req.query.modifiedAfter ? new Date(req.query.modifiedAfter) : null,
+      modifiedBefore: req.query.modifiedBefore ? new Date(req.query.modifiedBefore) : null,
+      maxResults: Math.min(Number(req.query.maxResults || 200), 1000)
+    };
+    const results = recursiveSearch(resolvedPath, options);
     
     // Fetch icons for all search result items concurrently
     await Promise.all(results.map(fetchItemIcon));
@@ -1492,15 +1337,8 @@ app.get('/api/search', async (req, res) => {
 
 // 15. Open File in OS Default Application API
 app.post('/api/open', (req, res) => {
-  const { path: filePath } = req.body;
-  if (!filePath) {
-    return res.status(400).json({ error: 'Missing path' });
-  }
-
   try {
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
-    }
+    const filePath = normalizeInputPath(req.body.path, { mustExist: true });
 
     const isElectron = process.versions.electron !== undefined;
     if (isElectron) {
@@ -1517,39 +1355,23 @@ app.post('/api/open', (req, res) => {
       return;
     }
 
-    let cmd = '';
     if (process.platform === 'win32') {
-      // Escape paths containing spaces or quotes
-      cmd = `start "" "${filePath}"`;
+      launchDetached('rundll32.exe', ['url.dll,FileProtocolHandler', filePath]);
     } else if (process.platform === 'darwin') {
-      cmd = `open "${filePath}"`;
+      launchDetached('open', [filePath]);
     } else {
-      cmd = `xdg-open "${filePath}"`;
+      launchDetached('xdg-open', [filePath]);
     }
-
-    exec(cmd, (error) => {
-      if (error) {
-        console.error('Failed to open file:', error);
-        return res.status(500).json({ error: 'Failed to open file in system default application.' });
-      }
-      res.json({ success: true });
-    });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendPathError(res, err);
   }
 });
 
 // 15b. Reveal File/Folder in OS Explorer API
 app.post('/api/reveal', (req, res) => {
-  const { path: filePath } = req.body;
-  if (!filePath) {
-    return res.status(400).json({ error: 'Missing path' });
-  }
-
   try {
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File/Folder not found' });
-    }
+    const filePath = normalizeInputPath(req.body.path, { mustExist: true });
 
     const isElectron = process.versions.electron !== undefined;
     if (isElectron) {
@@ -1558,65 +1380,16 @@ app.post('/api/reveal', (req, res) => {
       return res.json({ success: true });
     }
 
-    let cmd = '';
     if (process.platform === 'win32') {
-      cmd = `explorer.exe /select,"${filePath}"`;
+      launchDetached('explorer.exe', [`/select,${filePath}`]);
     } else if (process.platform === 'darwin') {
-      cmd = `open -R "${filePath}"`;
+      launchDetached('open', ['-R', filePath]);
     } else {
-      cmd = `xdg-open "${path.dirname(filePath)}"`;
+      launchDetached('xdg-open', [path.dirname(filePath)]);
     }
-
-    exec(cmd, (error) => {
-      if (error) {
-        console.error('Failed to reveal file:', error);
-        return res.status(500).json({ error: 'Failed to reveal in Explorer.' });
-      }
-      res.json({ success: true });
-    });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 16. Get Folder Size API (Recursive Calculation)
-app.get('/api/foldersize', (req, res) => {
-  try {
-    const targetPath = normalizeInputPath(req.query.path, { mustExist: true, directory: true });
-
-    let totalSize = 0;
-    let fileCount = 0;
-    let folderCount = 0;
-
-    const calculate = (dir) => {
-      try {
-        const items = fs.readdirSync(dir, { withFileTypes: true });
-        for (const item of items) {
-          const fullPath = path.join(dir, item.name);
-          if (item.isDirectory()) {
-            folderCount++;
-            calculate(fullPath);
-          } else {
-            fileCount++;
-            const stats = fs.statSync(fullPath);
-            totalSize += stats.size;
-          }
-        }
-      } catch (err) {
-        // ignore errors on unreadable/permission-restricted files
-      }
-    };
-
-    calculate(targetPath);
-
-    res.json({
-      path: targetPath,
-      size: totalSize,
-      fileCount,
-      folderCount
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendPathError(res, err);
   }
 });
 
@@ -1777,121 +1550,97 @@ app.get('/api/context-menu', (req, res) => {
 
 // 18. Open With / Shell launch
 app.post('/api/open-with', (req, res) => {
-  const { app: appName, action, targetPath, terminalType = 'auto' } = req.body;
-  if (!appName || !targetPath) {
+  const { app: appName, action, terminalType = 'auto' } = req.body;
+  if (!appName || !req.body.targetPath) {
     return res.status(400).json({ error: 'Missing app or targetPath' });
   }
 
-  const apps = getShellApps();
-  let cmd = '';
+  let targetPath;
+  try {
+    targetPath = normalizeInputPath(req.body.targetPath, { mustExist: true });
+  } catch (err) {
+    return sendPathError(res, err);
+  }
 
-  if (appName === 'terminal') {
-    // Open terminal inside the target folder. If targetPath is a file, open in parent folder.
-    let dirPath = targetPath;
-    try {
+  const apps = getShellApps();
+
+  try {
+    if (appName === 'terminal') {
+      let dirPath = targetPath;
       const stats = fs.statSync(targetPath);
       if (!stats.isDirectory()) {
         dirPath = path.dirname(targetPath);
       }
-    } catch (e) {}
 
-    // Determine target terminal executable
-    let chosenTerminal = terminalType;
-    if (chosenTerminal === 'auto') {
-      // If auto, use wt if it was detected, otherwise fallback to the path detected by getShellApps
-      if (apps.terminal.path && apps.terminal.path !== 'cmd' && apps.terminal.path !== 'powershell') {
-        chosenTerminal = 'wt';
-      } else {
-        chosenTerminal = apps.terminal.path;
+      let chosenTerminal = terminalType;
+      if (chosenTerminal === 'auto') {
+        chosenTerminal = apps.terminal.path && apps.terminal.path !== 'cmd' && apps.terminal.path !== 'powershell'
+          ? 'wt'
+          : apps.terminal.path;
       }
+
+      if (chosenTerminal === 'powershell') {
+        launchDetached('powershell.exe', ['-NoExit', '-Command', 'Set-Location -LiteralPath $args[0]', dirPath]);
+      } else if (chosenTerminal === 'cmd') {
+        launchDetached('cmd.exe', ['/k', 'cd', '/d', dirPath]);
+      } else {
+        const cleanEnv = { ...process.env };
+        Object.keys(cleanEnv).forEach(k => {
+          if (k.startsWith('npm_') || k.startsWith('NODE_') || k.startsWith('VSCODE_') ||
+              k === 'TERM_PROGRAM' || k === 'TERM_PROGRAM_VERSION' || k === 'INIT_CWD') {
+            delete cleanEnv[k];
+          }
+        });
+        launchDetached('wt.exe', ['-d', dirPath, 'powershell'], { env: cleanEnv });
+      }
+    } else if (appName === 'vscode') {
+      if (!apps.vscode.available) {
+        return res.status(400).json({ error: 'VS Code is not installed or was not detected.' });
+      }
+      launchDetached(apps.vscode.path, [targetPath]);
+    } else if (appName === 'antigravity') {
+      if (!apps.antigravity.available) {
+        return res.status(400).json({ error: 'Antigravity IDE is not installed.' });
+      }
+      launchDetached(apps.antigravity.path, [targetPath]);
+    } else if (appName === 'winrar') {
+      if (!apps.winrar.available) {
+        return res.status(400).json({ error: 'WinRAR is not installed.' });
+      }
+
+      if (action === 'open') {
+        launchDetached(apps.winrar.path, [targetPath]);
+      } else if (action === 'compress') {
+        const parentDir = path.dirname(targetPath);
+        const baseName = path.basename(targetPath);
+        const ext = path.extname(targetPath);
+        const baseNameWithoutExt = ext ? path.basename(targetPath, ext) : baseName;
+        const rarPath = path.join(parentDir, `${baseNameWithoutExt}.rar`);
+        launchDetached(apps.winrar.path, ['a', '-r', rarPath, targetPath]);
+      } else if (action === 'extract-here') {
+        launchDetached(apps.winrar.path, ['x', targetPath, `${path.dirname(targetPath)}${path.sep}`]);
+      } else if (action === 'extract-to') {
+        const parentDir = path.dirname(targetPath);
+        const baseName = path.basename(targetPath);
+        const ext = path.extname(targetPath);
+        const baseNameWithoutExt = ext ? path.basename(targetPath, ext) : baseName;
+        const destDir = path.join(parentDir, baseNameWithoutExt);
+        launchDetached(apps.winrar.path, ['x', targetPath, `${destDir}${path.sep}`]);
+      } else {
+        return res.status(400).json({ error: 'Unknown WinRAR action' });
+      }
+    } else if (appName === 'dynamic') {
+      return res.status(400).json({ error: 'Dynamic shell commands are disabled until they can be parsed safely.' });
+    } else {
+      return res.status(400).json({ error: 'Unknown app name' });
     }
 
-    if (chosenTerminal === 'powershell') {
-      cmd = `start powershell -NoExit -Command "cd -LiteralPath '${dirPath.replace(/'/g, "''")}'"`;
-    } else if (chosenTerminal === 'cmd') {
-      cmd = `start cmd /k "cd /d ${dirPath}"`;
-    } else {
-      // Use spawn with a clean environment to ensure Windows Terminal loads the user's default profile
-      // correctly without inheriting node/electron variables that break python/PowerShell configs.
-      const { spawn } = require('child_process');
-      const cleanEnv = { ...process.env };
-      Object.keys(cleanEnv).forEach(k => {
-        if (k.startsWith('npm_') || k.startsWith('NODE_') || k.startsWith('VSCODE_') || 
-            k === 'TERM_PROGRAM' || k === 'TERM_PROGRAM_VERSION' || k === 'INIT_CWD') {
-          delete cleanEnv[k];
-        }
-      });
-      
-      const p = spawn('wt.exe', ['-d', dirPath, 'powershell'], {
-        detached: true,
-        stdio: 'ignore',
-        shell: true,
-        env: cleanEnv
-      });
-      p.unref();
-      console.log(`Spawned wt.exe detached in ${dirPath}`);
-      return res.json({ success: true });
-    }
-  } else if (appName === 'vscode') {
-    const execPath = apps.vscode.available ? `"${apps.vscode.path}"` : 'code';
-    cmd = `start "" ${execPath} "${targetPath}"`;
-  } else if (appName === 'antigravity') {
-    if (!apps.antigravity.available) {
-      return res.status(400).json({ error: 'Antigravity IDE is not installed.' });
-    }
-    cmd = `start "" "${apps.antigravity.path}" "${targetPath}"`;
-  } else if (appName === 'winrar') {
-    if (!apps.winrar.available) {
-      return res.status(400).json({ error: 'WinRAR is not installed.' });
-    }
-    const winrarExe = `"${apps.winrar.path}"`;
-
-    if (action === 'open') {
-      cmd = `start "" ${winrarExe} "${targetPath}"`;
-    } else if (action === 'compress') {
-      const parentDir = path.dirname(targetPath);
-      const baseName = path.basename(targetPath);
-      const ext = path.extname(targetPath);
-      const baseNameWithoutExt = ext ? path.basename(targetPath, ext) : baseName;
-      const rarPath = path.join(parentDir, `${baseNameWithoutExt}.rar`);
-      cmd = `start "" ${winrarExe} a -r "${rarPath}" "${targetPath}"`;
-    } else if (action === 'extract-here') {
-      const parentDir = path.dirname(targetPath);
-      cmd = `start "" ${winrarExe} x "${targetPath}" "${parentDir}\\"`;
-    } else if (action === 'extract-to') {
-      const parentDir = path.dirname(targetPath);
-      const baseName = path.basename(targetPath);
-      const ext = path.extname(targetPath);
-      const baseNameWithoutExt = ext ? path.basename(targetPath, ext) : baseName;
-      const destDir = path.join(parentDir, baseNameWithoutExt);
-      cmd = `start "" ${winrarExe} x "${targetPath}" "${destDir}\\"`;
-    } else {
-      return res.status(400).json({ error: 'Unknown WinRAR action' });
-    }
-  } else if (appName === 'dynamic') {
-    const { dynamicCommand } = req.body;
-    if (!dynamicCommand) {
-      return res.status(400).json({ error: 'Missing dynamicCommand' });
-    }
-    // Replace %1 or "%1" with the targetPath. Note: command usually has "%1"
-    let finalCmd = dynamicCommand.replace(/"%1"/g, `"${targetPath}"`);
-    finalCmd = finalCmd.replace(/%1/g, `"${targetPath}"`);
-    cmd = `start "" ${finalCmd}`;
-  } else {
-    return res.status(400).json({ error: 'Unknown app name' });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to run shell-app command:', err);
+    return res.status(500).json({ error: `Failed to execute: ${err.message}` });
   }
-
-  console.log(`Executing open-with command: ${cmd}`);
-
-  exec(cmd, (error) => {
-    if (error) {
-      console.error('Failed to run shell-app command:', error);
-      return res.status(500).json({ error: `Failed to execute: ${error.message}` });
-    }
-    res.json({ success: true });
-  });
 });
-
 // Catch-all: serve static frontend if build exists
 const buildPath = path.join(__dirname, '../frontend/dist');
 if (fs.existsSync(buildPath)) {

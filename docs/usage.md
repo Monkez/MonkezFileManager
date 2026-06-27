@@ -28,9 +28,49 @@ Khi chọn tệp tin và thực hiện thao tác:
 
 ## Task Manager
 
-Khi copy hoặc di chuyển nhiều tệp/thư mục lớn, ứng dụng sẽ hiển thị bảng **Tasks** ở góc dưới bên phải. Bảng này cho biết trạng thái, phần trăm tiến độ, dung lượng đã xử lý và cho phép hủy tác vụ đang chạy.
+Khi copy hoặc di chuyển nhiều tệp/thư mục lớn, ứng dụng sẽ hiển thị bảng **Tasks** ở góc dưới bên phải. Bảng này cho biết trạng thái, phần trăm tiến độ, dung lượng đã xử lý, tốc độ hiện tại, ETA và cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
 
 Các pane sẽ tự làm mới sau khi task hoàn tất.
+
+## Undo/Redo Và Xử Lý Trùng Tên
+
+- Dùng `Ctrl + Z` để hoàn tác thao tác file gần nhất.
+- Dùng `Ctrl + Y` hoặc `Ctrl + Shift + Z` để làm lại thao tác vừa hoàn tác.
+- Undo/Redo hỗ trợ các thao tác tạo thư mục, tạo tệp, đổi tên, copy, move và đổi tên hàng loạt.
+- Khi copy/move, hộp thoại sẽ có mục **Conflict resolver**:
+  - **Keep both**: giữ cả hai, tự tạo tên dạng `- Copy`.
+  - **Replace**: ghi đè mục đang có ở thư mục đích.
+  - **Skip**: bỏ qua mục bị trùng tên.
+  - **Error**: dừng và báo lỗi nếu gặp trùng tên.
+
+## Search Nâng Cao
+
+Ô filter trong mỗi pane vẫn lọc nhanh theo tên khi gõ. Nhấn `Enter` để tìm sâu trong toàn bộ cây thư mục hiện tại.
+
+Bạn có thể dùng thêm cú pháp:
+
+| Cú pháp | Ý nghĩa | Ví dụ |
+| :--- | :--- | :--- |
+| `ext:pdf` | Chỉ tìm file có đuôi cụ thể | `invoice ext:pdf` |
+| `type:file` | Chỉ tìm file | `report type:file` |
+| `type:folder` | Chỉ tìm thư mục | `backup type:folder` |
+| `content:"abc"` | Tìm trong nội dung file text/code | `content:"TODO"` |
+| `min:1048576` | File lớn hơn số byte chỉ định | `video min:1048576` |
+| `max:5000000` | File nhỏ hơn số byte chỉ định | `log max:5000000` |
+| `after:2026-01-01` | Sửa sau ngày chỉ định | `after:2026-01-01` |
+| `before:2026-06-01` | Sửa trước ngày chỉ định | `before:2026-06-01` |
+
+## Batch Rename Và Command Palette
+
+- Chọn một hoặc nhiều file/thư mục, mở **Command** trên toolbar hoặc nhấn `Ctrl + Shift + P`, sau đó chọn **Đổi tên hàng loạt**.
+- Công cụ đổi tên hàng loạt có preview trước khi áp dụng và sẽ cảnh báo nếu tên mới bị trùng.
+- Pattern hỗ trợ `{name}` cho tên cũ, `{index}` cho số thứ tự và `{ext}` cho phần mở rộng.
+- Command Palette cũng cho phép tạo file/thư mục, đổi layout pane, thêm bookmark, refresh, undo/redo và bật/tắt các tùy chọn hiển thị.
+
+## Tabs
+
+- Có thể kéo thả tab trên thanh tabs của từng pane để đổi thứ tự.
+- Tab đã ghim vẫn được lưu lại cho lần mở ứng dụng sau.
 
 ## 5. Bảng Phím Tắt Tiện Ích
 
@@ -42,6 +82,10 @@ Các pane sẽ tự làm mới sau khi task hoàn tất.
 | **Ctrl + C** | Copy | Copy các tệp được chọn vào clipboard (chữ xanh) |
 | **Ctrl + X** | Cut | Cắt các tệp được chọn vào clipboard (chữ đỏ) |
 | **Ctrl + V** | Paste | Dán các tệp từ clipboard vào thư mục hiện tại |
+| **Ctrl + Z** | Undo | Hoàn tác thao tác file gần nhất |
+| **Ctrl + Y** | Redo | Làm lại thao tác file vừa hoàn tác |
+| **Ctrl + Shift + Z** | Redo | Cách khác để làm lại thao tác vừa hoàn tác |
+| **Ctrl + Shift + P** | Command Palette | Mở bảng lệnh nhanh |
 | **F2** | Đổi tên | Đổi tên tệp hoặc thư mục đang chọn |
 | **Delete** | Xóa | Chuyển tệp hoặc thư mục đang chọn vào Thùng Rác |
 | **Shift + Delete** | Xóa vĩnh viễn | Mở hộp thoại xác nhận xóa vĩnh viễn các tệp đã chọn |

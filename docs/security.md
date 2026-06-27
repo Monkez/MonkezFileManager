@@ -31,6 +31,8 @@ Không ghép chuỗi lệnh shell trực tiếp với path người dùng nhập
 
 ZIP/Unzip đã được chuyển sang helper chạy process an toàn hơn. Các route shell/open-with còn lại cần tiếp tục được thay theo cùng hướng.
 
+Hiện tại `open`, `reveal`, `open-with` và `launch-tool` cũng đã chuyển sang cách gọi process bằng mảng arguments. Dynamic command đọc từ Registry tạm thời bị từ chối ở backend cho tới khi có parser an toàn hơn.
+
 ## 4. Xóa và Ghi Đè
 
 Copy/move không được ghi đè im lặng. Khi trùng tên, hệ thống sẽ tự tạo tên kiểu `- Copy`, `- Copy 2` để tránh mất dữ liệu.

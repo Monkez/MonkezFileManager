@@ -1993,3 +1993,134 @@ body {
   color: var(--danger-color);
   border-color: var(--danger-color);
 }
+
+/* Command palette */
+.command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  background: rgba(2, 6, 23, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.command-palette {
+  width: min(620px, calc(100vw - 28px));
+  max-height: 70vh;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.command-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.command-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.command-list {
+  max-height: calc(70vh - 50px);
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.command-item {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-item:hover {
+  background: var(--bg-hover);
+}
+
+.command-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.command-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.command-description,
+.command-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.command-empty {
+  padding: 18px;
+  text-align: center;
+}
+
+/* Batch rename */
+.batch-rename-modal {
+  width: min(680px, calc(100vw - 28px));
+}
+
+.batch-rename-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.batch-rename-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.batch-preview-list {
+  margin-top: 14px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.batch-preview-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.batch-preview-row:last-child {
+  border-bottom: 0;
+}
+
+.batch-preview-row.conflict {
+  color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.08);
+}

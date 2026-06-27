@@ -10,9 +10,10 @@ const makeTaskId = () => `task_${Date.now()}_${crypto.randomBytes(4).toString('h
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
 
 class TaskManager {
-  constructor() {
+  constructor({ operationHistory } = {}) {
     this.tasks = new Map();
     this.subscribers = new Set();
+    this.operationHistory = operationHistory;
   }
 
   list() {
@@ -49,8 +50,13 @@ class TaskManager {
       totalItems: 0,
       processedItems: 0,
       currentPath: '',
+      speedBps: 0,
+      etaSeconds: null,
+      conflictPolicy: payload.conflictPolicy || 'keep-both',
       errors: [],
-      canceled: false
+      canceled: false,
+      paused: false,
+      historyEntries: []
     };
 
     this.tasks.set(task.id, task);
@@ -65,6 +71,28 @@ class TaskManager {
     if (!TERMINAL_STATES.has(task.status)) {
       task.canceled = true;
       task.status = 'canceling';
+      this.emit(task);
+    }
+    return this.serialize(task);
+  }
+
+  pause(id) {
+    const task = this.tasks.get(id);
+    if (!task) return null;
+    if (task.status === 'running') {
+      task.paused = true;
+      task.status = 'paused';
+      this.emit(task);
+    }
+    return this.serialize(task);
+  }
+
+  resume(id) {
+    const task = this.tasks.get(id);
+    if (!task) return null;
+    if (task.status === 'paused') {
+      task.paused = false;
+      task.status = 'running';
       this.emit(task);
     }
     return this.serialize(task);
@@ -97,6 +125,9 @@ class TaskManager {
       totalItems: task.totalItems,
       processedItems: task.processedItems,
       currentPath: task.currentPath,
+      speedBps: task.speedBps,
+      etaSeconds: task.etaSeconds,
+      conflictPolicy: task.conflictPolicy,
       errors: task.errors,
       percent
     };
@@ -125,7 +156,8 @@ class TaskManager {
       const plans = [];
       for (const source of task.sources) {
         this.throwIfCanceled(task);
-        const destination = this.pickDestination(task.destinationDir, path.basename(source));
+        const destination = this.pickDestination(task.destinationDir, path.basename(source), task.conflictPolicy);
+        if (!destination) continue;
         const plan = await this.planCopy(source, destination);
         plans.push({ source, destination, entries: plan.entries });
         task.totalBytes += plan.totalBytes;
@@ -135,15 +167,20 @@ class TaskManager {
 
       for (const plan of plans) {
         this.throwIfCanceled(task);
+        if (task.conflictPolicy === 'replace' && fs.existsSync(plan.destination)) {
+          await fs.promises.rm(plan.destination, { recursive: true, force: true });
+        }
         await this.copyPlannedEntries(task, plan.entries);
         if (task.type === 'move') {
           await fs.promises.rm(plan.source, { recursive: true, force: true });
         }
+        task.historyEntries.push({ from: plan.source, to: plan.destination });
       }
 
       task.status = 'completed';
       task.finishedAt = new Date().toISOString();
       task.processedBytes = task.totalBytes;
+      this.recordHistory(task);
       this.emit(task);
     } catch (err) {
       task.finishedAt = new Date().toISOString();
@@ -161,9 +198,15 @@ class TaskManager {
     }
   }
 
-  pickDestination(destinationDir, baseName) {
+  pickDestination(destinationDir, baseName, conflictPolicy = 'keep-both') {
     let candidate = path.join(destinationDir, baseName);
     if (!fs.existsSync(candidate)) return candidate;
+
+    if (conflictPolicy === 'skip') return null;
+    if (conflictPolicy === 'replace') return candidate;
+    if (conflictPolicy === 'error') {
+      throw new Error(`Destination already exists: ${candidate}`);
+    }
 
     const parsed = path.parse(baseName);
     let index = 1;
@@ -201,6 +244,8 @@ class TaskManager {
   async copyPlannedEntries(task, entries) {
     for (const entry of entries) {
       this.throwIfCanceled(task);
+      await this.waitIfPaused(task);
+      this.throwIfCanceled(task);
       task.currentPath = entry.source;
 
       if (entry.type === 'directory') {
@@ -210,12 +255,48 @@ class TaskManager {
         if (samePath(entry.source, entry.destination)) {
           throw new Error(`Source and destination are the same: ${entry.source}`);
         }
+        if (task.conflictPolicy === 'replace' && fs.existsSync(entry.destination)) {
+          await fs.promises.rm(entry.destination, { recursive: true, force: true });
+        }
         await fs.promises.copyFile(entry.source, entry.destination, fs.constants.COPYFILE_EXCL);
         task.processedBytes += entry.bytes;
       }
 
       task.processedItems += 1;
+      this.updateThroughput(task);
       this.emit(task);
+    }
+  }
+
+  async waitIfPaused(task) {
+    while (task.paused && !task.canceled) {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+  }
+
+  updateThroughput(task) {
+    if (!task.startedAt) return;
+    const elapsedSeconds = Math.max(1, (Date.now() - new Date(task.startedAt).getTime()) / 1000);
+    task.speedBps = Math.round(task.processedBytes / elapsedSeconds);
+    const remainingBytes = Math.max(0, task.totalBytes - task.processedBytes);
+    task.etaSeconds = task.speedBps > 0 ? Math.ceil(remainingBytes / task.speedBps) : null;
+  }
+
+  recordHistory(task) {
+    if (!this.operationHistory || task.historyEntries.length === 0) return;
+
+    if (task.type === 'copy') {
+      this.operationHistory.push({
+        label: `Copy ${task.historyEntries.length} item(s)`,
+        undo: task.historyEntries.slice().reverse().map(item => ({ action: 'remove', path: item.to })),
+        redo: task.historyEntries.map(item => ({ action: 'copy', from: item.from, to: item.to }))
+      });
+    } else if (task.type === 'move') {
+      this.operationHistory.push({
+        label: `Move ${task.historyEntries.length} item(s)`,
+        undo: task.historyEntries.slice().reverse().map(item => ({ action: 'rename', from: item.to, to: item.from })),
+        redo: task.historyEntries.map(item => ({ action: 'rename', from: item.from, to: item.to }))
+      });
     }
   }
 }
