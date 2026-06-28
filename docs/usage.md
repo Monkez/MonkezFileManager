@@ -35,6 +35,8 @@ Các pane sẽ tự làm mới sau khi task hoàn tất.
 
 Khi nhiều task cùng sao chép tới một thư mục, Task Manager tự giữ chỗ tên đích để mỗi bản sao có tên riêng và không phát sinh lỗi `EEXIST`.
 
+Task hoàn tất thành công sẽ hiện dấu xác nhận màu xanh trong khoảng 8 giây rồi tự biến mất. Task có lỗi hoặc bị hủy không tự ẩn để người dùng còn xem được nguyên nhân và trạng thái; dùng nút thùng rác để xóa chúng khỏi danh sách khi đã kiểm tra xong.
+
 ## Undo/Redo Và Xử Lý Trùng Tên
 
 - Dùng `Ctrl + Z` để hoàn tác thao tác file gần nhất.

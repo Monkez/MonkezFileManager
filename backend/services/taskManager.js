@@ -11,10 +11,12 @@ const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toL
 const pathKey = (itemPath) => path.resolve(itemPath).toLowerCase();
 
 class TaskManager {
-  constructor({ operationHistory } = {}) {
+  constructor({ operationHistory, completedRetentionMs = 8000 } = {}) {
     this.tasks = new Map();
     this.subscribers = new Set();
     this.reservedDestinations = new Set();
+    this.completedCleanupTimers = new Map();
+    this.completedRetentionMs = completedRetentionMs;
     this.operationHistory = operationHistory;
   }
 
@@ -101,6 +103,25 @@ class TaskManager {
     return this.serialize(task);
   }
 
+  remove(id) {
+    const task = this.tasks.get(id);
+    if (!task) return false;
+    if (!TERMINAL_STATES.has(task.status)) {
+      const err = new Error('Only finished tasks can be removed');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    const cleanupTimer = this.completedCleanupTimers.get(id);
+    if (cleanupTimer) {
+      clearTimeout(cleanupTimer);
+      this.completedCleanupTimers.delete(id);
+    }
+    this.tasks.delete(id);
+    this.emitSnapshot();
+    return true;
+  }
+
   subscribe(res) {
     this.subscribers.add(res);
     res.write(`data: ${JSON.stringify({ type: 'snapshot', tasks: this.list() })}\n\n`);
@@ -147,6 +168,35 @@ class TaskManager {
     }
   }
 
+  emitSnapshot() {
+    const payload = JSON.stringify({ type: 'snapshot', tasks: this.list() });
+    for (const res of this.subscribers) {
+      try {
+        res.write(`data: ${payload}\n\n`);
+      } catch (err) {
+        this.subscribers.delete(res);
+      }
+    }
+  }
+
+  scheduleCompletedCleanup(task) {
+    if (task.status !== 'completed' || task.errors.length > 0) return;
+
+    const existingTimer = this.completedCleanupTimers.get(task.id);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const timer = setTimeout(() => {
+      this.completedCleanupTimers.delete(task.id);
+      const current = this.tasks.get(task.id);
+      if (current?.status === 'completed' && current.errors.length === 0) {
+        this.tasks.delete(task.id);
+        this.emitSnapshot();
+      }
+    }, this.completedRetentionMs);
+    timer.unref?.();
+    this.completedCleanupTimers.set(task.id, timer);
+  }
+
   async runFileTask(id) {
     const task = this.tasks.get(id);
     if (!task) return;
@@ -185,6 +235,7 @@ class TaskManager {
       task.processedBytes = task.totalBytes;
       this.recordHistory(task);
       this.emit(task);
+      this.scheduleCompletedCleanup(task);
     } catch (err) {
       task.finishedAt = new Date().toISOString();
       task.status = task.canceled ? 'canceled' : 'failed';

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 const terminalStatuses = new Set(['completed', 'failed', 'canceled']);
+const dismissedTaskIds = new Set();
 
 const sortTasks = (tasks) => [...tasks].sort((a, b) => {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -11,9 +12,13 @@ export const useTaskStore = create((set, get) => ({
   connected: false,
   eventSource: null,
 
-  setTasks: (tasks) => set({ tasks: sortTasks(tasks) }),
+  setTasks: (tasks) => set({
+    tasks: sortTasks(tasks.filter(task => !dismissedTaskIds.has(task.id)))
+  }),
 
   upsertTask: (task) => {
+    if (dismissedTaskIds.has(task.id)) return;
+
     const previous = get().tasks.find(item => item.id === task.id);
     const becameTerminal = task && terminalStatuses.has(task.status)
       && (!previous || previous.status !== task.status);
@@ -101,5 +106,22 @@ export const useTaskStore = create((set, get) => ({
       throw new Error(data.error || 'Failed to resume task');
     }
     get().upsertTask(data);
+  },
+
+  dismissTask: async (taskId) => {
+    dismissedTaskIds.add(taskId);
+    const forgetTimer = setTimeout(() => dismissedTaskIds.delete(taskId), 30000);
+    forgetTimer.unref?.();
+    set(state => ({
+      tasks: state.tasks.filter(task => task.id !== taskId)
+    }));
+
+    const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok && response.status !== 404) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to dismiss task');
+    }
   }
 }));

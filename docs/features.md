@@ -80,6 +80,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
 - Khi dán file vào chính thư mục hiện tại, ứng dụng tự tạo tên `- Copy`, `- Copy 2` và không báo lỗi trùng tên.
 - Các task chạy đồng thời giữ chỗ tên đích riêng để không ghi đè hoặc tranh chấp cùng một đường dẫn.
+- Task hoàn tất không có lỗi tự biến mất sau vài giây để bảng luôn gọn; task lỗi và task bị hủy vẫn được giữ lại và có thể xóa thủ công.
 - Khi task hoàn tất, thao tác copy/move được ghi vào lịch sử để có thể undo/redo.
 
 ## 13. Search Nâng Cao và Command Palette

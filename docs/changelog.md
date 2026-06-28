@@ -10,6 +10,8 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 - Dán file vào chính thư mục hiện tại sẽ tự tạo tên `- Copy`, không còn tạo task lỗi `EEXIST`.
 - Task Manager giữ chỗ tên đích để nhiều task đồng thời tự dùng `- Copy 2`, `- Copy 3`; move về chính thư mục được coi là đã hoàn tất mà không đổi tên file.
 - Loại bỏ việc `Ctrl+V` bị xử lý hai lần bởi Pane và listener phím tắt toàn cục.
+- Làm mới giao diện Task Manager với độ tương phản đúng theo theme, trạng thái tiếng Việt và thông tin dung lượng/tốc độ dễ đọc hơn.
+- Task hoàn tất không có lỗi tự mờ và được xóa sau khoảng 8 giây; task lỗi hoặc bị hủy vẫn được giữ lại để kiểm tra.
 
 ## [1.6.0] - 28-06-2026
 

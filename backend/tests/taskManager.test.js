@@ -160,3 +160,55 @@ test('TaskManager never replaces a source file with itself', async () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('TaskManager removes finished tasks but keeps active tasks', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-remove-'));
+  const source = path.join(root, 'hello.txt');
+  const destinationDir = path.join(root, 'destination');
+  fs.writeFileSync(source, 'hello');
+  fs.mkdirSync(destinationDir);
+
+  try {
+    const manager = new TaskManager();
+    const task = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir
+    });
+
+    assert.throws(
+      () => manager.remove(task.id),
+      err => err.statusCode === 409
+    );
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    assert.equal(manager.remove(task.id), true);
+    assert.equal(manager.get(task.id), null);
+    assert.equal(manager.remove(task.id), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TaskManager automatically removes successful completed tasks', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-auto-remove-'));
+  const source = path.join(root, 'hello.txt');
+  const destinationDir = path.join(root, 'destination');
+  fs.writeFileSync(source, 'hello');
+  fs.mkdirSync(destinationDir);
+
+  try {
+    const manager = new TaskManager({ completedRetentionMs: 25 });
+    const task = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir
+    });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(manager.get(task.id), null);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

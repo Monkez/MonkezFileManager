@@ -31,8 +31,8 @@ Logic nghiệp vụ nên nằm trong `services/`, controller chỉ đọc reques
 
 Frontend bắt đầu có lớp state dùng Zustand cho các tác vụ nền:
 
-- `frontend/src/stores/useTaskStore.js`: nhận task qua SSE, cập nhật danh sách task, hỗ trợ cancel.
-- `frontend/src/components/TaskPanel.jsx`: hiển thị tiến độ copy/move, tốc độ, ETA, pause/resume/cancel.
+- `frontend/src/stores/useTaskStore.js`: nhận task qua SSE, cập nhật danh sách task, hỗ trợ pause/resume/cancel và loại task đã hoàn tất.
+- `frontend/src/components/TaskPanel.jsx`: hiển thị tiến độ copy/move, tốc độ, ETA, điều khiển task và tự ẩn task thành công.
 - `frontend/src/components/CommandPalette.jsx`: bảng lệnh nhanh cho các thao tác thường dùng.
 - `frontend/src/components/BatchRenameModal.jsx`: giao diện đổi tên hàng loạt có preview.
 - `frontend/src/stores/usePowerSendStore.js`: state và SSE cho các phiên Power Send.
@@ -57,8 +57,9 @@ Các thao tác copy/move dài dùng API:
 - `POST /api/tasks/:id/pause`
 - `POST /api/tasks/:id/resume`
 - `POST /api/tasks/:id/cancel`
+- `DELETE /api/tasks/:id` (chỉ xóa task đã kết thúc)
 
-Backend gửi tiến độ qua Server-Sent Events. Frontend tự refresh các pane khi task kết thúc.
+Backend gửi tiến độ qua Server-Sent Events. Frontend tự refresh các pane khi task kết thúc. Task hoàn tất sạch được cả frontend và backend tự dọn sau thời gian giữ ngắn; backend phát snapshot mới để mọi client đồng bộ.
 
 ## 4. Luồng Undo/Redo và Batch Rename
 

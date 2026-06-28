@@ -67,6 +67,18 @@ const createTasksRouter = (taskManager) => {
     res.json(task);
   });
 
+  router.delete('/:id', (req, res) => {
+    try {
+      const removed = taskManager.remove(req.params.id);
+      if (!removed) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      return res.status(204).end();
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  });
+
   return router;
 };
 
