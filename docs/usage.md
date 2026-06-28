@@ -25,12 +25,15 @@ Khi chọn tệp tin và thực hiện thao tác:
 - **Sao chép (Ctrl + C)**: Font chữ và icon của các tệp tin được chọn sẽ được highlight bằng **Màu Xanh Dương**.
 - **Cắt (Ctrl + X)**: Font chữ và icon của các tệp tin được chọn sẽ được highlight bằng **Màu Đỏ** đồng thời giảm độ mờ (opacity 70%) để biểu thị trạng thái đang chờ di chuyển.
 - **Dán (Ctrl + V)**: Sau khi dán tệp tin thành công, tất cả các khung hình liên quan sẽ được tự động làm mới để cập nhật nội dung đồng bộ.
+- Nếu dán file vào chính thư mục đang chứa file đó, ứng dụng tự tạo bản sao có tên `- Copy`, `- Copy 2`... thay vì báo lỗi.
 
 ## Task Manager
 
 Khi copy hoặc di chuyển nhiều tệp/thư mục lớn, ứng dụng sẽ hiển thị bảng **Tasks** ở góc dưới bên phải. Bảng này cho biết trạng thái, phần trăm tiến độ, dung lượng đã xử lý, tốc độ hiện tại, ETA và cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
 
 Các pane sẽ tự làm mới sau khi task hoàn tất.
+
+Khi nhiều task cùng sao chép tới một thư mục, Task Manager tự giữ chỗ tên đích để mỗi bản sao có tên riêng và không phát sinh lỗi `EEXIST`.
 
 ## Undo/Redo Và Xử Lý Trùng Tên
 

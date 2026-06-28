@@ -423,6 +423,8 @@ const App = () => {
   // Listen to global shortcuts (F5, F6, Ctrl+C, Ctrl+X, Ctrl+V) on window object
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
+      if (e.defaultPrevented) return;
+
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         setCommandOpen(true);

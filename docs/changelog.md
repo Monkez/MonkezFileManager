@@ -7,6 +7,9 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 ### Cải Tiến
 - Power Send Manager hiển thị tên và đường dẫn đầy đủ của từng file/thư mục trong phiên gửi.
 - Danh sách nguồn gửi có vùng cuộn riêng để vẫn dễ theo dõi khi gửi nhiều mục hoặc đường dẫn dài.
+- Dán file vào chính thư mục hiện tại sẽ tự tạo tên `- Copy`, không còn tạo task lỗi `EEXIST`.
+- Task Manager giữ chỗ tên đích để nhiều task đồng thời tự dùng `- Copy 2`, `- Copy 3`; move về chính thư mục được coi là đã hoàn tất mà không đổi tên file.
+- Loại bỏ việc `Ctrl+V` bị xử lý hai lần bởi Pane và listener phím tắt toàn cục.
 
 ## [1.6.0] - 28-06-2026
 

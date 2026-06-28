@@ -8,11 +8,13 @@ const TERMINAL_STATES = new Set(['completed', 'failed', 'canceled']);
 const makeTaskId = () => `task_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+const pathKey = (itemPath) => path.resolve(itemPath).toLowerCase();
 
 class TaskManager {
   constructor({ operationHistory } = {}) {
     this.tasks = new Map();
     this.subscribers = new Set();
+    this.reservedDestinations = new Set();
     this.operationHistory = operationHistory;
   }
 
@@ -56,7 +58,8 @@ class TaskManager {
       errors: [],
       canceled: false,
       paused: false,
-      historyEntries: []
+      historyEntries: [],
+      reservedDestinations: []
     };
 
     this.tasks.set(task.id, task);
@@ -156,7 +159,7 @@ class TaskManager {
       const plans = [];
       for (const source of task.sources) {
         this.throwIfCanceled(task);
-        const destination = this.pickDestination(task.destinationDir, path.basename(source), task.conflictPolicy);
+        const destination = this.reserveDestination(task, source);
         if (!destination) continue;
         const plan = await this.planCopy(source, destination);
         plans.push({ source, destination, entries: plan.entries });
@@ -189,6 +192,8 @@ class TaskManager {
         task.errors.push({ message: err.message, path: task.currentPath });
       }
       this.emit(task);
+    } finally {
+      this.releaseDestinations(task);
     }
   }
 
@@ -198,12 +203,50 @@ class TaskManager {
     }
   }
 
+  reserveDestination(task, source) {
+    const baseName = path.basename(source);
+    const directDestination = path.join(task.destinationDir, baseName);
+
+    if (task.type === 'move' && samePath(source, directDestination)) {
+      return null;
+    }
+
+    const policy = task.type === 'copy'
+      && task.conflictPolicy === 'replace'
+      && samePath(source, directDestination)
+      ? 'keep-both'
+      : task.conflictPolicy;
+    const destination = this.pickDestination(task.destinationDir, baseName, policy);
+    if (!destination) return null;
+
+    this.reservedDestinations.add(pathKey(destination));
+    task.reservedDestinations.push(destination);
+    return destination;
+  }
+
+  releaseDestinations(task) {
+    for (const destination of task.reservedDestinations) {
+      this.reservedDestinations.delete(pathKey(destination));
+    }
+    task.reservedDestinations = [];
+  }
+
+  isDestinationTaken(candidate) {
+    return fs.existsSync(candidate) || this.reservedDestinations.has(pathKey(candidate));
+  }
+
   pickDestination(destinationDir, baseName, conflictPolicy = 'keep-both') {
     let candidate = path.join(destinationDir, baseName);
-    if (!fs.existsSync(candidate)) return candidate;
+    const isReserved = this.reservedDestinations.has(pathKey(candidate));
+    if (!fs.existsSync(candidate) && !isReserved) return candidate;
 
     if (conflictPolicy === 'skip') return null;
-    if (conflictPolicy === 'replace') return candidate;
+    if (conflictPolicy === 'replace') {
+      if (isReserved) {
+        throw new Error(`Destination is being used by another task: ${candidate}`);
+      }
+      return candidate;
+    }
     if (conflictPolicy === 'error') {
       throw new Error(`Destination already exists: ${candidate}`);
     }
@@ -214,7 +257,7 @@ class TaskManager {
       const suffix = index === 1 ? ' - Copy' : ` - Copy ${index}`;
       candidate = path.join(destinationDir, `${parsed.name}${suffix}${parsed.ext}`);
       index += 1;
-    } while (fs.existsSync(candidate));
+    } while (this.isDestinationTaken(candidate));
 
     return candidate;
   }

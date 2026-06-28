@@ -65,3 +65,98 @@ test('TaskManager renames colliding copies instead of overwriting', async () => 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('TaskManager copies a file into its current folder without failing', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-same-folder-'));
+  const source = path.join(root, 'hello.txt');
+  fs.writeFileSync(source, 'hello');
+
+  try {
+    const manager = new TaskManager();
+    const task = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir: root
+    });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    assert.deepEqual(finished.errors, []);
+    assert.equal(fs.readFileSync(source, 'utf8'), 'hello');
+    assert.equal(fs.readFileSync(path.join(root, 'hello - Copy.txt'), 'utf8'), 'hello');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TaskManager reserves unique names for concurrent same-folder copies', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-concurrent-'));
+  const source = path.join(root, 'hello.txt');
+  fs.writeFileSync(source, 'hello');
+
+  try {
+    const manager = new TaskManager();
+    const first = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir: root
+    });
+    const second = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir: root
+    });
+
+    const [firstFinished, secondFinished] = await Promise.all([
+      waitForTask(manager, first.id),
+      waitForTask(manager, second.id)
+    ]);
+    assert.equal(firstFinished.status, 'completed');
+    assert.equal(secondFinished.status, 'completed');
+    assert.equal(fs.readFileSync(path.join(root, 'hello - Copy.txt'), 'utf8'), 'hello');
+    assert.equal(fs.readFileSync(path.join(root, 'hello - Copy 2.txt'), 'utf8'), 'hello');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TaskManager treats a same-folder move as a completed no-op', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-move-noop-'));
+  const source = path.join(root, 'hello.txt');
+  fs.writeFileSync(source, 'hello');
+
+  try {
+    const manager = new TaskManager();
+    const task = manager.createFileTask('move', {
+      sources: [source],
+      destinationDir: root
+    });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    assert.deepEqual(finished.errors, []);
+    assert.equal(fs.readFileSync(source, 'utf8'), 'hello');
+    assert.equal(fs.existsSync(path.join(root, 'hello - Copy.txt')), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TaskManager never replaces a source file with itself', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-replace-self-'));
+  const source = path.join(root, 'hello.txt');
+  fs.writeFileSync(source, 'hello');
+
+  try {
+    const manager = new TaskManager();
+    const task = manager.createFileTask('copy', {
+      sources: [source],
+      destinationDir: root,
+      conflictPolicy: 'replace'
+    });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    assert.equal(fs.readFileSync(source, 'utf8'), 'hello');
+    assert.equal(fs.readFileSync(path.join(root, 'hello - Copy.txt'), 'utf8'), 'hello');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
