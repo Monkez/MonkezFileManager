@@ -1,6 +1,6 @@
 {
   "name": "monkez-file-manager-root",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Root package for Monkez File Manager",
   "main": "main.js",
   "scripts": {

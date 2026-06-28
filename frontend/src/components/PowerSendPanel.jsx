@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   Clipboard,
   Download,
+  Files,
   Loader2,
   Trash2,
   Upload,
@@ -23,6 +24,11 @@ const formatDuration = (seconds) => {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m ${seconds % 60}s`;
+};
+
+const getSourceName = (sourcePath = '') => {
+  const normalizedPath = sourcePath.replace(/[\\/]+$/, '');
+  return normalizedPath.split(/[\\/]/).pop() || sourcePath;
 };
 
 const statusLabel = {
@@ -123,6 +129,23 @@ const PowerSendPanel = () => {
                   </button>
                 )}
               </div>
+
+              {transfer.type === 'outgoing' && transfer.sources?.length > 0 && (
+                <div className="power-send-sources">
+                  <div className="power-send-sources-label">Nguồn gửi ({transfer.sources.length})</div>
+                  <div className="power-send-sources-list">
+                    {transfer.sources.map((sourcePath, index) => (
+                      <div className="power-send-source" key={`${sourcePath}-${index}`} title={sourcePath}>
+                        <Files size={13} />
+                        <div className="power-send-source-details">
+                          <div className="power-send-source-name">{getSourceName(sourcePath)}</div>
+                          <div className="power-send-source-path">{sourcePath}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="task-progress-track">
                 <div className="task-progress-fill power-send-progress" style={{ width: `${transfer.percent || 0}%` }} />

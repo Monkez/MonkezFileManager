@@ -2,6 +2,12 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.6.1] - 28-06-2026
+
+### Cải Tiến
+- Power Send Manager hiển thị tên và đường dẫn đầy đủ của từng file/thư mục trong phiên gửi.
+- Danh sách nguồn gửi có vùng cuộn riêng để vẫn dễ theo dõi khi gửi nhiều mục hoặc đường dẫn dài.
+
 ## [1.6.0] - 28-06-2026
 
 ### Thêm Mới

@@ -31,6 +31,7 @@ Panel hiển thị:
 
 - phiên đang chờ máy nhận;
 - phiên đang tìm máy gửi;
+- tên và đường dẫn đầy đủ của từng file/thư mục trong phiên gửi;
 - file/thư mục đang được truyền;
 - phần trăm, dung lượng, tốc độ và ETA;
 - tên máy và địa chỉ peer;

@@ -2092,6 +2092,60 @@ body {
   margin-top: 5px;
 }
 
+.power-send-sources {
+  margin: 9px 0 8px 47px;
+  min-width: 0;
+}
+
+.power-send-sources-label {
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.power-send-sources-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border-left: 2px solid var(--border-color);
+}
+
+.power-send-source {
+  min-width: 0;
+  padding: 4px 7px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.power-send-source > svg {
+  margin-top: 1px;
+  flex: 0 0 auto;
+  color: var(--accent-color);
+}
+
+.power-send-source-details {
+  min-width: 0;
+}
+
+.power-send-source-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.power-send-source-path {
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .power-send-progress {
   background: var(--success-color);
 }
