@@ -127,13 +127,27 @@ body {
   height: 0;
 }
 
+.topbar-toggle-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 6px;
+  z-index: 201;
+}
+
+.topbar-shell.collapsed .topbar-toggle-zone {
+  top: 0;
+  bottom: auto;
+}
+
 .topbar-toggle-handle {
   position: absolute;
   left: 50%;
-  bottom: -14px;
+  top: 50%;
   width: 34px;
   height: 15px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   border: 1px solid var(--border-color);
   border-top: 0;
   border-radius: 0 0 6px 6px;
@@ -144,11 +158,15 @@ body {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, color 0.16s ease, background-color 0.16s ease;
 }
 
-.topbar-shell.collapsed .topbar-toggle-handle {
-  top: 0;
-  bottom: auto;
+.topbar-toggle-zone:hover .topbar-toggle-handle,
+.topbar-toggle-zone:focus-within .topbar-toggle-handle {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .topbar-toggle-handle:hover {

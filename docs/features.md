@@ -63,7 +63,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 9. Thanh Công Cụ Hiển Thị (View Toggles)
 - Bật/tắt hiển thị tệp tin và thư mục ẩn (Hidden Items) qua biểu tượng con mắt trên thanh công cụ chính.
 - Bật/tắt hiển thị phần mở rộng của tệp tin (File Extensions) qua biểu tượng văn bản. Cài đặt tự động ghi nhớ cho các phiên bản làm việc sau.
-- Dùng nút mũi tên ở giữa mép Topbar để thu gọn hoặc mở lại toàn bộ thanh công cụ trên cùng.
+- Rê chuột vào vùng phân cách dưới Topbar để hiện nút mũi tên, sau đó dùng nút này để thu gọn hoặc mở lại toàn bộ thanh công cụ trên cùng.
 - Trong Settings có thể hiện/ẩn Status Bar và bật/tắt riêng dải gợi ý phím tắt ở dưới cùng.
 - Nút cuộn tab trái/phải tự ẩn khi toàn bộ tab vẫn nằm gọn trong Pane.
 

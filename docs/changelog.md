@@ -14,6 +14,7 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 - Task hoàn tất không có lỗi tự mờ và được xóa sau khoảng 8 giây; task lỗi hoặc bị hủy vẫn được giữ lại để kiểm tra.
 - Thêm cài đặt hiện/ẩn Status Bar và dải gợi ý phím tắt dưới cùng; lựa chọn được ghi nhớ giữa các phiên.
 - Thêm nút mũi tên để thu gọn/mở lại Topbar và ghi nhớ trạng thái Topbar.
+- Nút thu gọn/mở Topbar chỉ hiện khi rê chuột vào vùng phân cách, đồng nhất với tay nắm của hai sidebar.
 - Nút cuộn trái/phải của thanh tab chỉ xuất hiện khi có tab bị che khuất.
 - Bỏ nút khôi phục thư mục phiên trước khỏi thanh công cụ của Pane.
 

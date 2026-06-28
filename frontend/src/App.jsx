@@ -1122,15 +1122,17 @@ const App = () => {
         </div>
           </header>
         )}
-        <button
-          type="button"
-          className="topbar-toggle-handle"
-          onClick={() => handleTopbarToggle(!showTopbar)}
-          title={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
-          aria-label={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
-        >
-          {showTopbar ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
+        <div className="topbar-toggle-zone">
+          <button
+            type="button"
+            className="topbar-toggle-handle"
+            onClick={() => handleTopbarToggle(!showTopbar)}
+            title={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
+            aria-label={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
+          >
+            {showTopbar ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Main Workspace Frame */}
