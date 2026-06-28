@@ -14,7 +14,7 @@ import {
   Star, HelpCircle,
   Eye, EyeOff, Sidebar as SidebarIcon,
   RectangleHorizontal, Columns2, Columns3, Settings,
-  ChevronDown, X, Folder, Sliders, FileText,
+  ChevronDown, ChevronUp, X, Folder, Sliders, FileText,
   Monitor, Download, Image, Video, Music, Home, Cpu, HardDrive, Terminal, Activity, Wifi
 } from 'lucide-react';
 
@@ -51,6 +51,18 @@ const App = () => {
   });
   const [showPreview, setShowPreview] = useState(() => {
     const saved = localStorage.getItem('monkez_preview_open');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showTopbar, setShowTopbar] = useState(() => {
+    const saved = localStorage.getItem('monkez_topbar_open');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showStatusBar, setShowStatusBar] = useState(() => {
+    const saved = localStorage.getItem('monkez_status_bar_open');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [showShortcutHints, setShowShortcutHints] = useState(() => {
+    const saved = localStorage.getItem('monkez_shortcut_hints');
     return saved !== null ? JSON.parse(saved) : true;
   });
 
@@ -120,6 +132,21 @@ const App = () => {
   const handleTerminalTypeChange = (val) => {
     setTerminalType(val);
     localStorage.setItem('monkez_terminal_type', val);
+  };
+
+  const handleTopbarToggle = (val) => {
+    setShowTopbar(val);
+    localStorage.setItem('monkez_topbar_open', JSON.stringify(val));
+  };
+
+  const handleStatusBarToggle = (val) => {
+    setShowStatusBar(val);
+    localStorage.setItem('monkez_status_bar_open', JSON.stringify(val));
+  };
+
+  const handleShortcutHintsToggle = (val) => {
+    setShowShortcutHints(val);
+    localStorage.setItem('monkez_shortcut_hints', JSON.stringify(val));
   };
 
   // Global Clipboard state
@@ -718,9 +745,11 @@ const App = () => {
   ];
 
   return (
-    <div className={`app-container theme-${theme}`}>
+    <div className={`app-container theme-${theme} ${showStatusBar ? 'status-bar-visible' : 'status-bar-hidden'}`}>
       {/* Top Main Command Toolbar */}
-      <header className="toolbar-global">
+      <div className={`topbar-shell ${showTopbar ? 'open' : 'collapsed'}`}>
+        {showTopbar && (
+          <header className="toolbar-global">
         {/* View Options Group */}
         <div className="toolbar-group">
           <button 
@@ -1091,7 +1120,18 @@ const App = () => {
             <span>3 Panes</span>
           </button>
         </div>
-      </header>
+          </header>
+        )}
+        <button
+          type="button"
+          className="topbar-toggle-handle"
+          onClick={() => handleTopbarToggle(!showTopbar)}
+          title={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
+          aria-label={showTopbar ? 'Ẩn thanh công cụ trên cùng' : 'Hiện thanh công cụ trên cùng'}
+        >
+          {showTopbar ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+      </div>
 
       {/* Main Workspace Frame */}
       <main className="main-workspace">
@@ -1200,7 +1240,34 @@ const App = () => {
                 </div>
               </div>
 
-              {/* 2. File Explorer Behaviors */}
+              {/* 2. Interface Visibility */}
+              <div className="settings-section">
+                <div className="settings-section-title" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+                  Thành Phần Giao Diện
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={showStatusBar}
+                      onChange={(e) => handleStatusBarToggle(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Hiển thị thanh trạng thái dưới cùng (Status Bar)</span>
+                  </label>
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={showShortcutHints}
+                      onChange={(e) => handleShortcutHintsToggle(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Hiển thị gợi ý phím tắt trong Status Bar</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 3. File Explorer Behaviors */}
               <div className="settings-section">
                 <div className="settings-section-title" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
                   Cấu Hình Duyệt File (Behaviors)
@@ -1238,7 +1305,7 @@ const App = () => {
                 </div>
               </div>
 
-              {/* 3. Startup Path */}
+              {/* 4. Startup Path */}
               <div className="settings-section">
                 <div className="settings-section-title" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
                   Khởi Động Mặc Định (Startup)
@@ -1265,7 +1332,7 @@ const App = () => {
                 </div>
               </div>
 
-              {/* 4. Terminal Configuration */}
+              {/* 5. Terminal Configuration */}
               <div className="settings-section">
                 <div className="settings-section-title" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
                   Cấu Hình Terminal (Terminal)
@@ -1311,12 +1378,18 @@ const App = () => {
                     localStorage.removeItem('monkez_open_default_app');
                     localStorage.removeItem('monkez_start_folder');
                     localStorage.removeItem('monkez_terminal_type');
+                    localStorage.removeItem('monkez_topbar_open');
+                    localStorage.removeItem('monkez_status_bar_open');
+                    localStorage.removeItem('monkez_shortcut_hints');
                     setTheme('dark');
                     setShowHiddenFiles(true);
                     setShowExtensions(true);
                     setOpenInDefaultApp(true);
                     setDefaultStartFolder('C:\\');
                     setTerminalType('auto');
+                    setShowTopbar(true);
+                    setShowStatusBar(true);
+                    setShowShortcutHints(true);
                     alert('Đã khôi phục cài đặt mặc định.');
                   }
                 }}
@@ -1443,9 +1516,9 @@ const App = () => {
       <TaskPanel />
 
       {/* Bottom Global Status Bar */}
-      <footer className="app-status-bar">
+      {showStatusBar && <footer className="app-status-bar">
         <span>Active pane: {activePaneId.toUpperCase()} | Path: {activePaneSel?.currentPath || 'C:\\'}</span>
-        <div className="hotkey-legend">
+        {showShortcutHints && <div className="hotkey-legend">
           <div className="hotkey-item">
             <span className="hotkey-badge">F2</span>
             <span>Rename</span>
@@ -1466,8 +1539,8 @@ const App = () => {
             <span className="hotkey-badge">DEL</span>
             <span>Delete</span>
           </div>
-        </div>
-      </footer>
+        </div>}
+      </footer>}
     </div>
   );
 };

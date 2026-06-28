@@ -12,6 +12,10 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 - Loại bỏ việc `Ctrl+V` bị xử lý hai lần bởi Pane và listener phím tắt toàn cục.
 - Làm mới giao diện Task Manager với độ tương phản đúng theo theme, trạng thái tiếng Việt và thông tin dung lượng/tốc độ dễ đọc hơn.
 - Task hoàn tất không có lỗi tự mờ và được xóa sau khoảng 8 giây; task lỗi hoặc bị hủy vẫn được giữ lại để kiểm tra.
+- Thêm cài đặt hiện/ẩn Status Bar và dải gợi ý phím tắt dưới cùng; lựa chọn được ghi nhớ giữa các phiên.
+- Thêm nút mũi tên để thu gọn/mở lại Topbar và ghi nhớ trạng thái Topbar.
+- Nút cuộn trái/phải của thanh tab chỉ xuất hiện khi có tab bị che khuất.
+- Bỏ nút khôi phục thư mục phiên trước khỏi thanh công cụ của Pane.
 
 ## [1.6.0] - 28-06-2026
 

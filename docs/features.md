@@ -60,21 +60,20 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **Công cụ** (Icon Tiện ích): Khởi chạy trực tiếp các công cụ quản trị hệ điều hành dưới nền bằng cách sử dụng luồng chạy độc lập (không gây lỗi GUI): Control Panel, Windows Settings, Add or Remove Programs, Task Manager, Disk Management, Device Manager, Registry Editor, Services, Resource Monitor, Command Prompt (CMD), và PowerShell.
 - Nút **ổ đĩa nhanh (Drive Toolbar)** ở đầu mỗi Pane hiển thị đầy đủ thông tin: nhãn ổ đĩa, biểu tượng, dung lượng trống và tổng dung lượng (ví dụ: `Local Disk (C:) - 45.2 GB trống / 120 GB`).
 
-## 9. Khôi Phục Lịch Sử Thư Mục (Restore Session)
-- Mỗi Pane ghi nhớ thư mục cuối cùng đang hoạt động trước khi tắt ứng dụng hoặc khởi động lại máy tính.
-- Nút **Restore (Khôi phục lịch sử)** ở thanh điều hướng mỗi Pane (cạnh nút Up) cho phép người dùng click để mở nhanh thư mục hoạt động cuối cùng của Pane đó trong phiên trước. Nút sẽ tự động disable/ẩn khi Pane đã ở thư mục đó.
-
-## 10. Thanh Công Cụ Hiển Thị (View Toggles)
+## 9. Thanh Công Cụ Hiển Thị (View Toggles)
 - Bật/tắt hiển thị tệp tin và thư mục ẩn (Hidden Items) qua biểu tượng con mắt trên thanh công cụ chính.
 - Bật/tắt hiển thị phần mở rộng của tệp tin (File Extensions) qua biểu tượng văn bản. Cài đặt tự động ghi nhớ cho các phiên bản làm việc sau.
+- Dùng nút mũi tên ở giữa mép Topbar để thu gọn hoặc mở lại toàn bộ thanh công cụ trên cùng.
+- Trong Settings có thể hiện/ẩn Status Bar và bật/tắt riêng dải gợi ý phím tắt ở dưới cùng.
+- Nút cuộn tab trái/phải tự ẩn khi toàn bộ tab vẫn nằm gọn trong Pane.
 
-## 11. Undo/Redo, Conflict Resolver và Batch Rename
+## 10. Undo/Redo, Conflict Resolver và Batch Rename
 - Hỗ trợ Undo/Redo cho các thao tác file thường dùng như tạo thư mục, tạo tệp, đổi tên, copy, move và đổi tên hàng loạt.
 - Khi copy/move có thể chọn cách xử lý trùng tên: giữ cả hai, ghi đè, bỏ qua hoặc báo lỗi.
 - Batch Rename có màn hình preview trước khi áp dụng, hỗ trợ pattern `{name}`, `{index}`, `{ext}`, tìm/thay thế, chuyển chữ thường và chữ hoa.
 - Hệ thống tự phát hiện tên mới bị trùng để tránh thao tác rename dở dang.
 
-## 12. Task Manager Nâng Cao
+## 11. Task Manager Nâng Cao
 - Các tác vụ copy/move lớn chạy nền và hiển thị tiến độ theo thời gian thực.
 - Hiển thị tốc độ xử lý, ETA, số mục đã xử lý và trạng thái hiện tại.
 - Cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
@@ -83,12 +82,12 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Task hoàn tất không có lỗi tự biến mất sau vài giây để bảng luôn gọn; task lỗi và task bị hủy vẫn được giữ lại và có thể xóa thủ công.
 - Khi task hoàn tất, thao tác copy/move được ghi vào lịch sử để có thể undo/redo.
 
-## 13. Search Nâng Cao và Command Palette
+## 12. Search Nâng Cao và Command Palette
 - Ô search trong mỗi pane hỗ trợ tìm sâu bằng `Enter`, kèm bộ lọc theo đuôi file, loại file/thư mục, dung lượng, ngày sửa và nội dung file text/code.
 - Quick Command Palette mở bằng `Ctrl+Shift+P` hoặc nút **Command**, giúp gọi nhanh các lệnh thường dùng mà không cần rời bàn phím.
 - Có thể kéo thả tab trên thanh tabs để đổi vị trí, giúp sắp xếp phiên làm việc gọn hơn.
 
-## 14. Power Send Qua Mạng LAN
+## 13. Power Send Qua Mạng LAN
 - Gửi trực tiếp nhiều file và folder giữa hai máy trong LAN bằng một mã tùy ý, không cần tài khoản, cloud hoặc nhập IP.
 - Máy nhận tự tìm máy gửi bằng UDP discovery, sau đó tải dữ liệu trực tiếp qua HTTP streaming.
 - Hỗ trợ giữ nguyên cấu trúc thư mục và tự tránh ghi đè khi thư mục đích có tên trùng.

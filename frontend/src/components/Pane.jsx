@@ -5,7 +5,7 @@ import {
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
   X, AlertTriangle, ChevronRight, ChevronLeft, MoreVertical,
-  List, Grid, HardDrive, History, Pin,
+  List, Grid, HardDrive, Pin,
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
@@ -166,10 +166,6 @@ const Pane = ({
     return initial[0]?.id || 'tab-1';
   });
 
-  const [restorablePath] = useState(() => {
-    return localStorage.getItem('monkez_last_path_' + paneId);
-  });
-
   // View Mode Settings
   const [viewMode, setViewMode] = useState(() => {
     const saved = localStorage.getItem(`monkez_viewmode_${paneId}`);
@@ -190,12 +186,6 @@ const Pane = ({
     items: []
   });
 
-  const hasLastFolder = !!(restorablePath && restorablePath.toLowerCase() !== filesData.currentPath.toLowerCase());
-  const restoreLastFolder = () => {
-    if (restorablePath) {
-      navigateTo(restorablePath);
-    }
-  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -348,6 +338,32 @@ const Pane = ({
 
   const paneRef = useRef(null);
   const tabsListRef = useRef(null);
+  const [tabsOverflowing, setTabsOverflowing] = useState(false);
+
+  useLayoutEffect(() => {
+    const tabsList = tabsListRef.current;
+    if (!tabsList) return undefined;
+
+    const updateOverflow = () => {
+      const scrollButtons = tabsList.parentElement?.querySelectorAll('.tabs-scroll-btn') || [];
+      const reservedButtonWidth = Array.from(scrollButtons)
+        .reduce((width, button) => width + button.getBoundingClientRect().width, 0);
+      const availableWidthWithoutButtons = tabsList.clientWidth + reservedButtonWidth;
+      const isOverflowing = tabsList.scrollWidth > availableWidthWithoutButtons + 1;
+      setTabsOverflowing(current => current === isOverflowing ? current : isOverflowing);
+    };
+
+    updateOverflow();
+    const resizeObserver = new ResizeObserver(updateOverflow);
+    resizeObserver.observe(tabsList);
+    Array.from(tabsList.children).forEach(child => resizeObserver.observe(child));
+    window.addEventListener('resize', updateOverflow);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateOverflow);
+    };
+  }, [tabs]);
 
   const scrollTabsLeft = (e) => {
     e.stopPropagation();
@@ -711,13 +727,6 @@ const Pane = ({
       eventSource.close();
     };
   }, [filesData.currentPath, filesData.parentPath, activeTabId]);
-
-  // Save current path to localStorage for session restoring
-  useEffect(() => {
-    if (filesData.currentPath) {
-      localStorage.setItem('monkez_last_path_' + paneId, filesData.currentPath);
-    }
-  }, [filesData.currentPath, paneId]);
 
   // Sync back path transitions with parent container active selection
   // Always report currentPath so bookmarks/toolbar actions work
@@ -1604,14 +1613,15 @@ const Pane = ({
 
       {/* Tabs list bar */}
       <div className="pane-tabs-row">
-        {/* Left Scroll Arrow */}
-        <button
-          className="tabs-scroll-btn tabs-scroll-btn-left"
-          title="Scroll Left"
-          onClick={scrollTabsLeft}
-        >
-          <ChevronLeft size={12} />
-        </button>
+        {tabsOverflowing && (
+          <button
+            className="tabs-scroll-btn tabs-scroll-btn-left"
+            title="Cuộn tab sang trái"
+            onClick={scrollTabsLeft}
+          >
+            <ChevronLeft size={12} />
+          </button>
+        )}
 
         <div className="pane-tabs-list" ref={tabsListRef}>
           {tabs.map((tab) => (
@@ -1659,26 +1669,18 @@ const Pane = ({
           </button>
         </div>
 
-        {/* Right Scroll Arrow */}
-        <button
-          className="tabs-scroll-btn tabs-scroll-btn-right"
-          title="Scroll Right"
-          onClick={scrollTabsRight}
-        >
-          <ChevronRight size={12} />
-        </button>
+        {tabsOverflowing && (
+          <button
+            className="tabs-scroll-btn tabs-scroll-btn-right"
+            title="Cuộn tab sang phải"
+            onClick={scrollTabsRight}
+          >
+            <ChevronRight size={12} />
+          </button>
+        )}
 
         {/* Tab-row right-side quick widgets */}
         <div className="pane-tabs-widgets" onClick={(e) => e.stopPropagation()}>
-          <button
-            className="pane-tab-widget-btn"
-            title={hasLastFolder ? `Khôi phục thư mục phiên trước: ${restorablePath}` : "Không có lịch sử khôi phục"}
-            onClick={restoreLastFolder}
-            disabled={!hasLastFolder}
-          >
-            <History size={14} />
-          </button>
-
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
               className={`pane-tab-widget-btn ${viewMode !== 'text' ? 'active' : ''}`}

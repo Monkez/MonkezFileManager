@@ -117,6 +117,45 @@ body {
 }
 
 /* Top Command Toolbar */
+.topbar-shell {
+  position: relative;
+  z-index: 200;
+  flex: 0 0 auto;
+}
+
+.topbar-shell.collapsed {
+  height: 0;
+}
+
+.topbar-toggle-handle {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 34px;
+  height: 15px;
+  transform: translateX(-50%);
+  border: 1px solid var(--border-color);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--bg-toolbar);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+}
+
+.topbar-shell.collapsed .topbar-toggle-handle {
+  top: 0;
+  bottom: auto;
+}
+
+.topbar-toggle-handle:hover {
+  color: var(--accent-color);
+  background: var(--bg-tertiary);
+}
+
 .toolbar-global {
   display: flex;
   align-items: center;
@@ -1350,6 +1389,11 @@ body {
   padding: 1px 5px;
   font-size: 10px;
   font-family: monospace;
+}
+
+.status-bar-hidden .task-panel,
+.status-bar-hidden .power-send-panel {
+  bottom: 14px;
 }
 
 /* Error message component inside file list */
