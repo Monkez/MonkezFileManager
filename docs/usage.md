@@ -120,8 +120,8 @@ Hai máy phải ở cùng mạng LAN. Windows Firewall có thể yêu cầu cấ
 | **Ctrl + Shift + Z** | Redo | Cách khác để làm lại thao tác vừa hoàn tác |
 | **Ctrl + Shift + P** | Command Palette | Mở bảng lệnh nhanh |
 | **F2** | Đổi tên | Đổi tên tệp hoặc thư mục đang chọn |
-| **Delete** | Xóa | Chuyển tệp hoặc thư mục đang chọn vào Thùng Rác |
-| **Shift + Delete** | Xóa vĩnh viễn | Mở hộp thoại xác nhận xóa vĩnh viễn các tệp đã chọn |
+| **Delete** | Xóa | Nút Delete được focus sẵn; nhấn Enter để đưa mục đã chọn vào Thùng rác và theo dõi kết quả trong Task Manager |
+| **Shift + Delete** | Xóa vĩnh viễn | Nút Delete được focus sẵn; nhấn Enter để xóa vĩnh viễn và theo dõi kết quả trong Task Manager |
 | **Shift + Lên/Xuống** | Chọn nhiều tệp | Mở rộng vùng chọn tệp tin lên/xuống |
 | **F5** | Copy to Target | Copy nhanh các tệp chọn sang khung hình lân cận |
 | **F6** | Move to Target | Di chuyển nhanh các tệp chọn sang khung hình lân cận |

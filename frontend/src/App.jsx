@@ -572,11 +572,13 @@ const App = () => {
       url = '/api/rename';
       body = { currentPath: data.currentPath, oldName: data.oldName, newName: fields.name };
     } else if (type === 'delete') {
-      url = '/api/delete';
+      url = '/api/tasks/delete';
       body = { paths: data.paths };
+      isTaskOperation = true;
     } else if (type === 'delete-permanent') {
-      url = '/api/delete-permanent';
+      url = '/api/tasks/delete-permanent';
       body = { paths: data.paths };
+      isTaskOperation = true;
     } else if (type === 'transfer' || type === 'shortcut-copy' || type === 'shortcut-move') {
       const isCopy = type === 'shortcut-copy' || (type === 'transfer' && fields.action === 'copy');
       url = isCopy ? '/api/tasks/copy' : '/api/tasks/move';
@@ -1703,6 +1705,7 @@ const Modal = ({ type, data, onClose, onSubmit }) => {
               <button 
                 type="submit" 
                 className="modal-btn modal-btn-danger"
+                autoFocus
               >
                 Delete
               </button>

@@ -26,7 +26,8 @@ Backend dùng test runner có sẵn của Node.js (`node --test`).
 Các test hiện có:
 
 - `backend/tests/pathGuard.test.js`: kiểm tra chuẩn hóa path và tên file/thư mục.
-- `backend/tests/taskManager.test.js`: kiểm tra copy task, copy cùng thư mục, giữ tên đích giữa các task đồng thời, move no-op, xóa task đã kết thúc và xử lý trùng tên không ghi đè.
+- `backend/tests/taskManager.test.js`: kiểm tra copy/move task, xóa vĩnh viễn, lỗi Thùng rác, xử lý trùng tên và vòng đời task.
+- `backend/tests/systemToolLauncher.test.js`: kiểm tra Device Manager dùng đường dẫn System32 tuyệt đối và lỗi spawn bất đồng bộ được trả về an toàn.
 - `backend/tests/fileOperations.test.js`: kiểm tra tạo/đổi tên/tính dung lượng, copy tránh ghi đè, batch rename conflict và undo/redo history.
 - `backend/tests/powerSendService.test.js`: kiểm tra mã/path an toàn, gộp nguồn cùng mã và truyền nhiều file/thư mục thật qua HTTP loopback.
 

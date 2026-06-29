@@ -77,6 +77,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Các tác vụ copy/move lớn chạy nền và hiển thị tiến độ theo thời gian thực.
 - Hiển thị tốc độ xử lý, ETA, số mục đã xử lý và trạng thái hiện tại.
 - Cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.
+- Thao tác đưa vào Thùng rác và xóa vĩnh viễn chạy qua Task Manager, hiển thị số mục đã xử lý và chi tiết lỗi nếu thất bại.
 - Khi dán file vào chính thư mục hiện tại, ứng dụng tự tạo tên `- Copy`, `- Copy 2` và không báo lỗi trùng tên.
 - Các task chạy đồng thời giữ chỗ tên đích riêng để không ghi đè hoặc tranh chấp cùng một đường dẫn.
 - Task hoàn tất không có lỗi tự biến mất sau vài giây để bảng luôn gọn; task lỗi và task bị hủy vẫn được giữ lại và có thể xóa thủ công.

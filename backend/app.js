@@ -14,6 +14,7 @@ const {
 const { TaskManager } = require('./services/taskManager');
 const { OperationHistory } = require('./services/operationHistory');
 const { PowerSendService } = require('./services/powerSendService');
+const { launchSystemTool } = require('./services/systemToolLauncher');
 const { createTasksRouter } = require('./routes/tasks.routes');
 const { createFileOperationsRouter } = require('./routes/fileOperations.routes');
 const { createHistoryRouter } = require('./routes/history.routes');
@@ -173,6 +174,9 @@ const launchDetached = (command, args = [], options = {}) => {
     shell: false,
     ...options
   });
+  child.on('error', (err) => {
+    console.error('Failed to launch ' + command + ':', err);
+  });
   child.unref();
   return child;
 };
@@ -319,54 +323,15 @@ app.get('/api/system-paths', (req, res) => {
 });
 
 // Launch System Utility Tools API
-app.post('/api/launch-tool', (req, res) => {
+app.post('/api/launch-tool', async (req, res) => {
   const { tool } = req.body;
-  let launchSpec = null;
-
-  switch (tool) {
-    case 'control-panel':
-      launchSpec = ['control.exe', []];
-      break;
-    case 'settings':
-      launchSpec = ['explorer.exe', ['ms-settings:']];
-      break;
-    case 'add-remove-programs':
-      launchSpec = ['explorer.exe', ['ms-settings:appsfeatures']];
-      break;
-    case 'task-manager':
-      launchSpec = ['taskmgr.exe', []];
-      break;
-    case 'disk-management':
-      launchSpec = ['mmc.exe', ['diskmgmt.msc']];
-      break;
-    case 'device-manager':
-      launchSpec = ['mmc.exe', ['devmgmt.msc']];
-      break;
-    case 'registry-editor':
-      launchSpec = ['regedit.exe', []];
-      break;
-    case 'command-prompt':
-      launchSpec = ['cmd.exe', []];
-      break;
-    case 'powershell':
-      launchSpec = ['powershell.exe', []];
-      break;
-    case 'services':
-      launchSpec = ['mmc.exe', ['services.msc']];
-      break;
-    case 'resource-monitor':
-      launchSpec = ['resmon.exe', []];
-      break;
-    default:
-      return res.status(400).json({ error: 'Unknown system utility tool' });
-  }
 
   try {
-    launchDetached(launchSpec[0], launchSpec[1]);
+    await launchSystemTool(tool);
     res.json({ success: true });
   } catch (err) {
-    console.error(`Failed to launch tool ${tool}:`, err);
-    res.status(500).json({ error: err.message });
+    console.error('Failed to launch tool ' + tool + ':', err);
+    res.status(err.statusCode || 500).json({ error: err.message });
   }
 });
 

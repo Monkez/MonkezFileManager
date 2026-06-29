@@ -2034,6 +2034,12 @@ body {
   color: var(--success-color);
 }
 
+.task-kind-icon.delete,
+.task-kind-icon.delete-permanent {
+  background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+  color: var(--danger-color);
+}
+
 .task-row-text {
   min-width: 0;
   flex: 1;

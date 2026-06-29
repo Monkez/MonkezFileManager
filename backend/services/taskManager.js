@@ -10,14 +10,25 @@ const makeTaskId = () => `task_${Date.now()}_${crypto.randomBytes(4).toString('h
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
 const pathKey = (itemPath) => path.resolve(itemPath).toLowerCase();
 
+const defaultTrashItem = async (itemPath) => {
+  if (process.versions.electron !== undefined) {
+    const { shell } = require('electron');
+    await shell.trashItem(itemPath);
+    return;
+  }
+
+  await fs.promises.rm(itemPath, { recursive: true, force: true });
+};
+
 class TaskManager {
-  constructor({ operationHistory, completedRetentionMs = 8000 } = {}) {
+  constructor({ operationHistory, completedRetentionMs = 8000, trashItem = defaultTrashItem } = {}) {
     this.tasks = new Map();
     this.subscribers = new Set();
     this.reservedDestinations = new Set();
     this.completedCleanupTimers = new Map();
     this.completedRetentionMs = completedRetentionMs;
     this.operationHistory = operationHistory;
+    this.trashItem = trashItem;
   }
 
   list() {
@@ -67,6 +78,38 @@ class TaskManager {
     this.tasks.set(task.id, task);
     this.emit(task);
     setImmediate(() => this.runFileTask(task.id));
+    return this.serialize(task);
+  }
+
+  createDeleteTask(payload, { permanent = false } = {}) {
+    const sources = validatePathArray(payload.paths);
+    const task = {
+      id: makeTaskId(),
+      type: permanent ? 'delete-permanent' : 'delete',
+      status: 'queued',
+      sources,
+      destinationDir: null,
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      totalBytes: 0,
+      processedBytes: 0,
+      totalItems: 0,
+      processedItems: 0,
+      currentPath: '',
+      speedBps: 0,
+      etaSeconds: null,
+      conflictPolicy: null,
+      errors: [],
+      canceled: false,
+      paused: false,
+      historyEntries: [],
+      reservedDestinations: []
+    };
+
+    this.tasks.set(task.id, task);
+    this.emit(task);
+    setImmediate(() => this.runDeleteTask(task.id));
     return this.serialize(task);
   }
 
@@ -248,6 +291,62 @@ class TaskManager {
     }
   }
 
+  async runDeleteTask(id) {
+    const task = this.tasks.get(id);
+    if (!task) return;
+
+    task.status = 'running';
+    task.startedAt = new Date().toISOString();
+    this.emit(task);
+
+    try {
+      const plans = [];
+      for (const source of task.sources) {
+        this.throwIfCanceled(task);
+        const totals = await this.measurePath(source);
+        plans.push({ source, ...totals });
+        task.totalBytes += totals.totalBytes;
+        task.totalItems += totals.totalItems;
+      }
+      this.emit(task);
+
+      for (const plan of plans) {
+        this.throwIfCanceled(task);
+        await this.waitIfPaused(task);
+        this.throwIfCanceled(task);
+        task.currentPath = plan.source;
+        this.emit(task);
+
+        try {
+          if (task.type === 'delete-permanent') {
+            await fs.promises.rm(plan.source, { recursive: true, force: true });
+          } else {
+            await this.trashItem(plan.source);
+          }
+          task.processedBytes += plan.totalBytes;
+          task.processedItems += plan.totalItems;
+          this.updateThroughput(task);
+        } catch (err) {
+          task.errors.push({ message: err.message, path: plan.source });
+        }
+        this.emit(task);
+      }
+
+      task.status = task.errors.length > 0 ? 'failed' : 'completed';
+      task.finishedAt = new Date().toISOString();
+      task.currentPath = '';
+      this.emit(task);
+      this.scheduleCompletedCleanup(task);
+    } catch (err) {
+      task.finishedAt = new Date().toISOString();
+      task.status = task.canceled ? 'canceled' : 'failed';
+      if (!task.canceled) {
+        task.errors.push({ message: err.message, path: task.currentPath });
+      }
+      this.emit(task);
+    }
+  }
+
   throwIfCanceled(task) {
     if (task.canceled) {
       throw new Error('Task canceled');
@@ -333,6 +432,27 @@ class TaskManager {
 
     await walk(source, destination);
     return { entries, totalBytes };
+  }
+
+  async measurePath(source) {
+    let totalBytes = 0;
+    let totalItems = 0;
+
+    const walk = async (itemPath) => {
+      const stats = await fs.promises.lstat(itemPath);
+      totalItems += 1;
+      if (stats.isDirectory() && !stats.isSymbolicLink()) {
+        const children = await fs.promises.readdir(itemPath);
+        for (const child of children) {
+          await walk(path.join(itemPath, child));
+        }
+      } else {
+        totalBytes += stats.size;
+      }
+    };
+
+    await walk(source);
+    return { totalBytes, totalItems };
   }
 
   async copyPlannedEntries(task, entries) {

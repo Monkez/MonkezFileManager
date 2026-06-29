@@ -57,7 +57,14 @@ const TaskRow = ({ task, cancelTask, pauseTask, resumeTask, dismissTask }) => {
   const canDismiss = ['completed', 'failed', 'canceled'].includes(task.status);
   const isActive = ACTIVE_STATUSES.has(task.status);
   const hasError = task.errors.length > 0;
-  const taskLabel = task.type === 'move' ? 'Di chuyển' : 'Sao chép';
+  const taskLabels = {
+    copy: 'Sao chép',
+    move: 'Di chuyển',
+    delete: 'Đưa vào Thùng rác',
+    'delete-permanent': 'Xóa vĩnh viễn'
+  };
+  const taskLabel = taskLabels[task.type] || task.type;
+  const isDeleteTask = task.type === 'delete' || task.type === 'delete-permanent';
 
   return (
     <div
@@ -65,7 +72,9 @@ const TaskRow = ({ task, cancelTask, pauseTask, resumeTask, dismissTask }) => {
     >
       <div className="task-row-main">
         <div className={`task-kind-icon ${task.type}`}>
-          {task.type === 'move' ? <MoveRight size={16} /> : <CopyIcon size={15} />}
+          {isDeleteTask
+            ? <Trash2 size={15} />
+            : task.type === 'move' ? <MoveRight size={16} /> : <CopyIcon size={15} />}
         </div>
 
         <div className="task-row-text">
@@ -77,7 +86,11 @@ const TaskRow = ({ task, cancelTask, pauseTask, resumeTask, dismissTask }) => {
             </span>
           </div>
           <div className="task-metrics">
-            <span>{formatBytes(task.processedBytes)} / {formatBytes(task.totalBytes)}</span>
+            {isDeleteTask ? (
+              <span>{task.processedItems} / {task.totalItems} mục</span>
+            ) : (
+              <span>{formatBytes(task.processedBytes)} / {formatBytes(task.totalBytes)}</span>
+            )}
             {task.speedBps > 0 && <span>{formatBytes(task.speedBps)}/s</span>}
             {isActive && task.speedBps > 0 && <span>ETA {formatDuration(task.etaSeconds)}</span>}
           </div>

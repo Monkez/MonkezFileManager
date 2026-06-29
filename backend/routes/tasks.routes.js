@@ -43,6 +43,24 @@ const createTasksRouter = (taskManager) => {
     }
   });
 
+  router.post('/delete', (req, res) => {
+    try {
+      const task = taskManager.createDeleteTask(req.body);
+      res.status(202).json(task);
+    } catch (err) {
+      res.status(err.statusCode || 400).json({ error: err.message });
+    }
+  });
+
+  router.post('/delete-permanent', (req, res) => {
+    try {
+      const task = taskManager.createDeleteTask(req.body, { permanent: true });
+      res.status(202).json(task);
+    } catch (err) {
+      res.status(err.statusCode || 400).json({ error: err.message });
+    }
+  });
+
   router.post('/:id/cancel', (req, res) => {
     const task = taskManager.cancel(req.params.id);
     if (!task) {

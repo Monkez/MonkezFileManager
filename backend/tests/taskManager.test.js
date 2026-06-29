@@ -212,3 +212,48 @@ test('TaskManager automatically removes successful completed tasks', async () =>
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('TaskManager permanently deletes a folder and reports completion', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-delete-'));
+  const source = path.join(root, 'remove-me');
+  fs.mkdirSync(source);
+  fs.writeFileSync(path.join(source, 'hello.txt'), 'hello');
+
+  try {
+    const manager = new TaskManager();
+    const task = manager.createDeleteTask({ paths: [source] }, { permanent: true });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'completed');
+    assert.equal(finished.percent, 100);
+    assert.equal(finished.processedItems, 2);
+    assert.equal(fs.existsSync(source), false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('TaskManager keeps a failed recycle task with its error details', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-task-delete-error-'));
+  const source = path.join(root, 'keep-me.txt');
+  fs.writeFileSync(source, 'hello');
+
+  try {
+    const manager = new TaskManager({
+      trashItem: async () => {
+        throw new Error('Recycle Bin unavailable');
+      }
+    });
+    const task = manager.createDeleteTask({ paths: [source] });
+
+    const finished = await waitForTask(manager, task.id);
+    assert.equal(finished.status, 'failed');
+    assert.equal(finished.errors.length, 1);
+    assert.equal(finished.errors[0].message, 'Recycle Bin unavailable');
+    assert.equal(finished.errors[0].path, source);
+    assert.equal(fs.existsSync(source), true);
+    assert.ok(manager.get(task.id));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

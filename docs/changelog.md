@@ -17,6 +17,9 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 - Nút thu gọn/mở Topbar chỉ hiện khi rê chuột vào vùng phân cách, đồng nhất với tay nắm của hai sidebar.
 - Nút cuộn trái/phải của thanh tab chỉ xuất hiện khi có tab bị che khuất.
 - Bỏ nút khôi phục thư mục phiên trước khỏi thanh công cụ của Pane.
+- Hộp thoại xác nhận xóa tự focus nút Delete để có thể nhấn Enter ngay.
+- Thao tác xóa thường và xóa vĩnh viễn chạy qua Task Manager, hiển thị tiến trình và giữ lại lỗi để kiểm tra.
+- Sửa Device Manager dùng đường dẫn MMC tuyệt đối và xử lý lỗi spawn an toàn, không còn làm văng main process.
 
 ## [1.6.0] - 28-06-2026
 

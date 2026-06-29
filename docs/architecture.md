@@ -10,6 +10,7 @@ Backend hiện được tách thành entrypoint mỏng và các module chuyên t
 - `backend/app.js`: tạo Express app, đăng ký middleware và các route còn lại.
 - `backend/security/pathGuard.js`: chuẩn hóa và kiểm tra đường dẫn, tên file/thư mục.
 - `backend/services/taskManager.js`: quản lý tác vụ nền như copy/move thư mục lớn.
+- `backend/services/systemToolLauncher.js`: ánh xạ và khởi chạy công cụ quản trị Windows, chờ kết quả spawn và chuẩn hóa lỗi.
 - `backend/routes/tasks.routes.js`: API quản lý task.
 - `backend/services/fileOperations.js`: logic tạo/xóa/đổi tên/copy/move/tính dung lượng thư mục.
 - `backend/routes/fileOperations.routes.js`: route cho nhóm thao tác file.
@@ -52,6 +53,8 @@ Các thao tác copy/move dài dùng API:
 
 - `POST /api/tasks/copy`
 - `POST /api/tasks/move`
+- `POST /api/tasks/delete`
+- `POST /api/tasks/delete-permanent`
 - `GET /api/tasks`
 - `GET /api/tasks/events`
 - `POST /api/tasks/:id/pause`
