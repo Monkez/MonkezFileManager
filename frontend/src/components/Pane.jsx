@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import FileTable from './FileTable';
 import FileGrid from './FileGrid';
+import { getContextMenuPosition } from '../utils/contextMenuPosition';
 import { 
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
@@ -217,15 +219,44 @@ const Pane = ({
     isOpen: false,
     x: 0,
     y: 0,
+    horizontalOrigin: 'cursor',
     targetItem: null
   });
 
   const [shellApps, setShellApps] = useState({
-    terminal: { available: true, path: 'cmd' },
-    vscode: { available: false, path: '' },
-    antigravity: { available: false, path: '' },
-    winrar: { available: false, path: '' }
+    terminal: { available: true, path: 'cmd', iconUrl: '' },
+    vscode: { available: false, path: '', iconUrl: '' },
+    antigravity: { available: false, path: '', iconUrl: '' },
+    winrar: { available: false, path: '', iconUrl: '' }
   });
+
+  const renderShellAppIcon = (appName, FallbackIcon) => {
+    if (appName === 'terminal') {
+      return <FallbackIcon size={14} />;
+    }
+
+    const iconUrl = shellApps[appName]?.iconUrl;
+    if (iconUrl) {
+      return (
+        <span className="context-menu-app-icon-wrap">
+          <img
+            className="context-menu-app-icon"
+            src={iconUrl}
+            alt=""
+            draggable="false"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              event.currentTarget.nextElementSibling?.removeAttribute('hidden');
+            }}
+          />
+          <span hidden className="context-menu-app-icon-fallback">
+            <FallbackIcon size={14} />
+          </span>
+        </span>
+      );
+    }
+    return <FallbackIcon size={14} />;
+  };
 
   useEffect(() => {
     const fetchShellApps = async () => {
@@ -396,36 +427,43 @@ const Pane = ({
     return () => window.removeEventListener('click', handleCloseMenu);
   }, [contextMenu.isOpen, viewMenuOpen]);
 
+  useEffect(() => {
+    const handleCloseAllContextMenus = (event) => {
+      if (event.detail?.sourcePaneId !== paneId) {
+        setContextMenu(prev => prev.isOpen ? { ...prev, isOpen: false } : prev);
+      }
+    };
+
+    window.addEventListener('monkez-close-context-menus', handleCloseAllContextMenus);
+    return () => window.removeEventListener('monkez-close-context-menus', handleCloseAllContextMenus);
+  }, [paneId]);
+
+  const openContextMenu = (nextMenu) => {
+    window.dispatchEvent(new CustomEvent('monkez-close-context-menus', {
+      detail: { sourcePaneId: paneId }
+    }));
+    setContextMenu(nextMenu);
+  };
+
   useLayoutEffect(() => {
     if (contextMenu.isOpen && contextMenuRef.current) {
       const menuEl = contextMenuRef.current;
       const rect = menuEl.getBoundingClientRect();
-      let adjustedY = contextMenu.y;
-      let adjustedX = contextMenu.x;
-      let changed = false;
+      const position = getContextMenuPosition({
+        anchorX: contextMenu.x,
+        anchorY: contextMenu.y,
+        menuWidth: rect.width,
+        menuHeight: menuEl.scrollHeight,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        horizontalOrigin: contextMenu.horizontalOrigin
+      });
 
-      if (paneRef.current) {
-        const paneRect = paneRef.current.getBoundingClientRect();
-
-        // Check horizontal overflow relative to the pane width
-        if (contextMenu.x + rect.width > paneRect.width) {
-          adjustedX = Math.max(10, paneRect.width - rect.width - 10);
-          changed = true;
-        }
-
-        // Check vertical overflow relative to the pane height
-        if (contextMenu.y + rect.height > paneRect.height) {
-          adjustedY = Math.max(10, paneRect.height - rect.height - 10);
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        menuEl.style.top = `${adjustedY}px`;
-        menuEl.style.left = `${adjustedX}px`;
-      }
+      menuEl.style.top = `${position.y}px`;
+      menuEl.style.left = `${position.x}px`;
+      menuEl.style.maxHeight = `${position.maxHeight}px`;
     }
-  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y]);
+  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y, contextMenu.horizontalOrigin]);
 
   const handleRowContextMenu = (item, idx, e) => {
     e.preventDefault();
@@ -440,21 +478,25 @@ const Pane = ({
       setFocusedIndex(idx);
     }
     
-    setContextMenu({
+    openContextMenu({
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
+      horizontalOrigin: 'cursor',
       targetItem: item
     });
   };
 
   const isEmptyAreaTarget = (target) => {
-    return target.classList.contains('pane-content-area')
-      || target.tagName === 'TABLE'
-      || target.tagName === 'TBODY'
-      || target.classList.contains('file-grid')
-      || target.classList.contains('empty-folder-message')
-      || target.closest('.empty-folder-message');
+    if (!target?.closest) return false;
+
+    // Treat every non-item point inside the file content as folder-level space.
+    // This includes nested table/grid elements and the "Parent Folder" row.
+    // Real file items have their own context-menu handler and data-name marker.
+    return Boolean(
+      target.closest('.pane-content-area')
+      && !target.closest('[data-name]')
+    );
   };
 
   const handleAreaContextMenu = (e) => {
@@ -467,10 +509,11 @@ const Pane = ({
       setSelectedNames(new Set());
       setFocusedIndex(-1);
 
-      setContextMenu({
+      openContextMenu({
         isOpen: true,
         x: e.clientX,
         y: e.clientY,
+        horizontalOrigin: 'cursor',
         targetItem: null
       });
     }
@@ -495,16 +538,12 @@ const Pane = ({
     setFocusedIndex(-1);
 
     const buttonRect = e.currentTarget.getBoundingClientRect();
-    const paneRect = paneRef.current.getBoundingClientRect();
 
-    // Position relative to the pane, aligning the right edge of the menu with the button
-    const x = Math.max(10, buttonRect.right - paneRect.left - 220); 
-    const y = buttonRect.bottom - paneRect.top + 5;
-
-    setContextMenu({
+    openContextMenu({
       isOpen: true,
-      x,
-      y,
+      x: buttonRect.right,
+      y: buttonRect.bottom + 5,
+      horizontalOrigin: 'right-edge',
       targetItem: null
     });
   };
@@ -726,6 +765,7 @@ const Pane = ({
       clearTimeout(debounceTimer);
       eventSource.close();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filesData.currentPath, filesData.parentPath, activeTabId]);
 
   // Sync back path transitions with parent container active selection
@@ -746,6 +786,7 @@ const Pane = ({
       selectedPaths,
       activeFile: isActive ? activeFileObj : undefined
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNames, focusedIndex, filesData.currentPath, filesData.items, isActive]);
 
   // Navigate function
@@ -1914,7 +1955,7 @@ const Pane = ({
       </div>
 
       {/* Custom Context Menu Dropdown */}
-      {contextMenu.isOpen && (
+      {contextMenu.isOpen && createPortal((
         <div 
           ref={contextMenuRef}
           className="context-menu glass"
@@ -1980,6 +2021,16 @@ const Pane = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>Extract ZIP Here</span></div>
                 </div>
               )}
+              {shellApps.winrar.available && ['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
+                <>
+                  <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-here', contextMenu.targetItem.path)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Extract Here</span></div>
+                  </div>
+                  <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-to', contextMenu.targetItem.path)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Extract to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}\"</span></div>
+                  </div>
+                </>
+              )}
 
               {/* External explorer-like options */}
               {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available || shellApps.winrar.available) && (
@@ -1987,34 +2038,28 @@ const Pane = ({
                   <div className="context-menu-divider" />
                   {shellApps.terminal.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', contextMenu.targetItem.path)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Terminal size={14} /> <span>Open Terminal here</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('terminal', Terminal)} <span>Open Terminal here</span></div>
                     </div>
                   )}
                   {shellApps.vscode.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', contextMenu.targetItem.path)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Code size={14} /> <span>Open with VS Code</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('vscode', Code)} <span>Open with VS Code</span></div>
                     </div>
                   )}
                   {shellApps.antigravity.available && (
                     <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', contextMenu.targetItem.path)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Cpu size={14} /> <span>Open with Antigravity IDE</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('antigravity', Cpu)} <span>Open with Antigravity IDE</span></div>
                     </div>
                   )}
                   {shellApps.winrar.available && (
                     <>
                       <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'compress', contextMenu.targetItem.path)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>WinRAR: Compress to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar"</span></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Compress to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar"</span></div>
                       </div>
                       {['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
                         <>
                           <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'open', contextMenu.targetItem.path)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>WinRAR: Open with WinRAR</span></div>
-                          </div>
-                          <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-here', contextMenu.targetItem.path)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>WinRAR: Extract Here</span></div>
-                          </div>
-                          <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-to', contextMenu.targetItem.path)}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>WinRAR: Extract to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}\"</span></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Open with WinRAR</span></div>
                           </div>
                         </>
                       )}
@@ -2057,17 +2102,17 @@ const Pane = ({
               <div className="context-menu-divider" />
               {shellApps.terminal.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', filesData.currentPath)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Terminal size={14} /> <span>Open Terminal here</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('terminal', Terminal)} <span>Open Terminal here</span></div>
                 </div>
               )}
               {shellApps.vscode.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', filesData.currentPath)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Code size={14} /> <span>Open Folder in VS Code</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('vscode', Code)} <span>Open Folder in VS Code</span></div>
                 </div>
               )}
               {shellApps.antigravity.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', filesData.currentPath)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Cpu size={14} /> <span>Open Folder in Antigravity IDE</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('antigravity', Cpu)} <span>Open Folder in Antigravity IDE</span></div>
                 </div>
               )}
               {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available) && (
@@ -2087,7 +2132,7 @@ const Pane = ({
             </>
           )}
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 };

@@ -82,7 +82,7 @@ test('Power Send transfers multiple files and folders over loopback HTTP', async
   }
 });
 
-test('Power Send merges additional sources that use the same code', async () => {
+test('Power Send keeps repeated codes as independent offers and discovers the newest one', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-powersend-merge-'));
   const first = path.join(root, 'first.txt');
   const second = path.join(root, 'second.txt');
@@ -95,12 +95,14 @@ test('Power Send merges additional sources that use the same code', async () => 
 
   try {
     const original = await service.createOffer({ paths: [first], code: 'MERGE' });
-    const merged = await service.createOffer({ paths: [second], code: 'MERGE' });
+    const latest = await service.createOffer({ paths: [second], code: 'MERGE' });
 
-    assert.equal(merged.id, original.id);
-    assert.equal(merged.sources.length, 2);
-    assert.equal(merged.totalItems, 2);
-    assert.equal(merged.totalBytes, 11);
+    assert.notEqual(latest.id, original.id);
+    assert.deepEqual(original.sources, [first]);
+    assert.deepEqual(latest.sources, [second]);
+    assert.equal(latest.totalItems, 1);
+    assert.equal(latest.totalBytes, 6);
+    assert.equal(service.findLatestOffer(service.transfers.get(latest.id).codeHash).id, latest.id);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

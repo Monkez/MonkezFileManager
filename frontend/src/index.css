@@ -186,10 +186,19 @@ body {
   z-index: 100;
 }
 
-@media (max-width: 1380px) {
+.toolbar-global.auto-compact .toolbar-btn span {
+  display: none; /* Hide text when measured toolbar content no longer fits */
+}
+
+.toolbar-global.auto-compact .toolbar-btn {
+  padding: 6px 10px;
+}
+
+@media (max-width: 1500px) {
   .toolbar-btn span {
-    display: none; /* Hide text, only show icons on narrow viewports */
+    display: none; /* Laptop-friendly fallback before JavaScript measurement runs */
   }
+
   .toolbar-btn {
     padding: 6px 10px;
   }
@@ -913,6 +922,7 @@ body {
   border-collapse: collapse;
   text-align: left;
   font-size: 11.5px;
+  table-layout: fixed;
 }
 
 .file-table th {
@@ -941,9 +951,28 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px;
   background: transparent !important;
   transition: color 0.1s;
+}
+
+.file-table-name-column {
+  width: calc(100% - 410px);
+}
+
+.file-table-size-column {
+  width: 90px;
+  min-width: 90px;
+  text-align: right;
+}
+
+.file-table-date-column {
+  width: 230px;
+  min-width: 210px;
+}
+
+.file-table-type-column {
+  width: 90px;
+  min-width: 80px;
 }
 
 .file-table tr {
@@ -981,15 +1010,27 @@ body {
 }
 
 .file-item-name-cell {
+  color: var(--text-main) !important;
+  font-weight: 500;
+  min-width: 0;
+  max-width: none;
+}
+
+.file-name-content {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-main) !important;
-  font-weight: 500;
+  min-width: 0;
+  width: 100%;
 }
 
-.file-item-name-cell .sidebar-item-text {
+.file-name-content .file-name-text {
   color: var(--text-main) !important;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-icon {
@@ -1292,7 +1333,8 @@ body {
   height: 100vh;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  /* Confirmation dialogs must stay above floating transfer/task panels. */
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1441,7 +1483,9 @@ body {
 .context-menu {
   position: fixed;
   z-index: 1000;
-  min-width: 180px;
+  width: min(360px, calc(100vw - 16px));
+  min-width: 240px;
+  max-width: calc(100vw - 16px);
   background: rgba(15, 23, 42, 0.92);
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
@@ -1449,18 +1493,54 @@ body {
   padding: 4px 0;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .context-menu-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 7px 14px;
   font-size: 12.5px;
   color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   user-select: none;
+}
+
+.context-menu-item > div:first-child {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.context-menu-item > div:first-child span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu-app-icon-wrap,
+.context-menu-app-icon-fallback {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.context-menu-app-icon-fallback[hidden] {
+  display: none;
+}
+
+.context-menu-app-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
 }
 
 .context-menu-item:hover {
@@ -1488,6 +1568,7 @@ body {
   font-family: monospace;
   color: var(--text-inactive);
   margin-left: 14px;
+  flex-shrink: 0;
 }
 
 .context-menu-item:hover .context-menu-shortcut {
@@ -1503,7 +1584,8 @@ body {
 /* ==================== THEME OVERRIDES ==================== */
 
 /* 1. Light Mode Theme */
-.app-container.theme-light {
+.app-container.theme-light,
+body.theme-light {
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
   --bg-tertiary: #e2e8f0;
@@ -1593,7 +1675,8 @@ body {
 }
 
 /* 2. Midnight Blue Theme */
-.app-container.theme-midnight {
+.app-container.theme-midnight,
+body.theme-midnight {
   --bg-primary: #0a0d1a;
   --bg-secondary: rgba(17, 20, 39, 0.7);
   --bg-tertiary: rgba(30, 41, 75, 0.5);
@@ -1632,7 +1715,8 @@ body {
 }
 
 /* 3. Obsidian Black Theme */
-.app-container.theme-obsidian {
+.app-container.theme-obsidian,
+body.theme-obsidian {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
   --bg-tertiary: #161616;

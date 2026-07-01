@@ -81,6 +81,26 @@ test('batch rename previews duplicate target conflicts', () => {
   }
 });
 
+test('batch rename rejects generated names with path separators', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-batch-invalid-'));
+  const original = path.join(root, 'note.txt');
+  fs.writeFileSync(original, 'hello');
+
+  try {
+    assert.throws(
+      () => previewBatchRename({
+        currentPath: root,
+        paths: [original],
+        mode: 'pattern',
+        pattern: 'nested/name'
+      }),
+      /path separators|invalid Windows characters/
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('batch rename records undo and redo history', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-batch-history-'));
   const original = path.join(root, 'note.txt');

@@ -130,7 +130,24 @@ function getContextMenu(targetPath, callback) {
     }
 
     # Check for WinRAR
-    $winRarPath = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe' -ErrorAction SilentlyContinue).'(default)'
+    $winRarPath = $null
+    $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    $winRarCandidates = @(
+        (Get-ItemProperty -LiteralPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe' -ErrorAction SilentlyContinue).'(default)',
+        (Get-ItemProperty -LiteralPath 'Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe' -ErrorAction SilentlyContinue).'(default)',
+        (Get-ItemProperty -LiteralPath 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe' -ErrorAction SilentlyContinue).'(default)',
+        "$env:ProgramFiles\WinRAR\WinRAR.exe",
+        "$programFilesX86\WinRAR\WinRAR.exe",
+        "$env:LOCALAPPDATA\Programs\WinRAR\WinRAR.exe",
+        (Get-Command WinRAR.exe -ErrorAction SilentlyContinue).Source,
+        (Get-Command rar.exe -ErrorAction SilentlyContinue).Source
+    )
+    foreach ($candidate in $winRarCandidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            $winRarPath = $candidate
+            break
+        }
+    }
     if ($winRarPath -and (Test-Path -LiteralPath $winRarPath)) {
         if ("${ext}" -eq "DIRECTORY") {
             $items += @{

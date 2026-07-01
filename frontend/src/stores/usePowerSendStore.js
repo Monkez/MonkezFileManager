@@ -28,7 +28,9 @@ export const usePowerSendStore = create((set, get) => ({
         : [transfer, ...state.transfers];
       return {
         transfers: sortTransfers(transfers),
-        panelOpen: state.panelOpen || !terminalStatuses.has(transfer.status)
+        // Only auto-open for a newly-created active transfer. Progress events for
+        // an existing transfer must not undo an explicit close from the user.
+        panelOpen: state.panelOpen || (!exists && !terminalStatuses.has(transfer.status))
       };
     });
 

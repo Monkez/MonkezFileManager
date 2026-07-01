@@ -3,6 +3,7 @@ const path = require('path');
 const {
   normalizeInputPath,
   resolveChildPath,
+  validateEntryName,
   validatePathArray
 } = require('../security/pathGuard');
 
@@ -230,7 +231,7 @@ const previewBatchRename = ({ currentPath, paths, mode = 'pattern', pattern = '{
         .replace(/\{index\}/g, String(startIndex + idx).padStart(2, '0'));
     }
 
-    const newName = `${nextBaseName}${parsed.ext}`;
+    const newName = validateEntryName(`${nextBaseName}${parsed.ext}`);
     return {
       oldPath: itemPath,
       oldName: path.basename(itemPath),

@@ -113,17 +113,8 @@ class PowerSendService {
     const normalizedCode = normalizeCode(code);
     const safePaths = validatePathArray(paths);
     const codeHash = hashCode(normalizedCode);
-    const existing = Array.from(this.transfers.values()).find(transfer => (
-      transfer.type === 'outgoing'
-      && transfer.codeHash === codeHash
-      && !['sending', 'canceled'].includes(transfer.status)
-    ));
-
-    const mergedPaths = existing
-      ? Array.from(new Set([...existing.sources.filter(fs.existsSync), ...safePaths]))
-      : safePaths;
-    const manifest = await this.buildManifest(mergedPaths);
-    const transfer = existing || {
+    const manifest = await this.buildManifest(safePaths);
+    const transfer = {
       id: makeId('offer'),
       type: 'outgoing',
       direction: 'send',
@@ -136,7 +127,7 @@ class PowerSendService {
       status: 'ready',
       code: normalizedCode,
       codeHash,
-      sources: mergedPaths,
+      sources: safePaths,
       roots: manifest.roots,
       entries: manifest.entries,
       totalBytes: manifest.totalBytes,
@@ -156,6 +147,20 @@ class PowerSendService {
     this.transfers.set(transfer.id, transfer);
     this.emit(transfer);
     return this.serialize(transfer);
+  }
+
+  findLatestOffer(codeHashValue) {
+    return Array.from(this.transfers.values())
+      .filter(transfer => (
+        transfer.type === 'outgoing'
+        && transfer.codeHash === codeHashValue
+        && !transfer.canceled
+      ))
+      .reduce((latest, transfer) => (
+        !latest || new Date(transfer.createdAt) >= new Date(latest.createdAt)
+          ? transfer
+          : latest
+      ), null);
   }
 
   receive({ code, destinationDir }) {
@@ -387,11 +392,7 @@ class PowerSendService {
     }
 
     if (payload.type === 'powersend-query' && payload.codeHash) {
-      const offer = Array.from(this.transfers.values()).find(transfer => (
-        transfer.type === 'outgoing'
-        && transfer.codeHash === payload.codeHash
-        && !transfer.canceled
-      ));
+      const offer = this.findLatestOffer(payload.codeHash);
       if (!offer) return;
 
       const response = Buffer.from(JSON.stringify({

@@ -8,15 +8,13 @@ const {
   launchSystemTool
 } = require('../services/systemToolLauncher');
 
-test('Device Manager uses absolute System32 MMC paths', () => {
+test('Device Manager uses the System32 Control Panel entry point', () => {
   const [command, args] = getSystemToolLaunchSpec('device-manager', {
     SystemRoot: 'D:\\Windows'
   });
 
-  assert.equal(command, path.join('D:\\Windows', 'System32', 'mmc.exe'));
-  assert.deepEqual(args, [
-    path.join('D:\\Windows', 'System32', 'devmgmt.msc')
-  ]);
+  assert.equal(command, path.join('D:\\Windows', 'System32', 'control.exe'));
+  assert.deepEqual(args, ['hdwwiz.cpl']);
 });
 
 test('system tool launcher rejects asynchronous spawn errors', async () => {

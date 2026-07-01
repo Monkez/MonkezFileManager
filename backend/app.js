@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { exec, spawn } = require('child_process');
+const { exec, execFileSync, spawn } = require('child_process');
 const { getContextMenu } = require('./contextMenuHelper');
 const {
   normalizeInputPath,
@@ -1372,6 +1372,68 @@ const fileExists = (filePath) => {
   }
 };
 
+const readRegistryDefaultValue = (registryPath) => {
+  try {
+    return execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `(Get-ItemProperty -LiteralPath '${escapePowerShellSingleQuoted(registryPath)}' -ErrorAction SilentlyContinue).'(default)'`
+      ],
+      { encoding: 'utf8', windowsHide: true, timeout: 3000 }
+    ).trim();
+  } catch {
+    return '';
+  }
+};
+
+const findExecutableOnPath = (exeName) => {
+  try {
+    const result = execFileSync('where.exe', [exeName], {
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 3000
+    });
+    return result.split(/\r?\n/).map(item => item.trim()).find(fileExists) || '';
+  } catch {
+    return '';
+  }
+};
+
+const findWinrarPath = ({ programFiles, programFilesX86, localAppData }) => {
+  const registryCandidates = [
+    'Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\WinRAR.exe',
+    'Registry::HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\WinRAR.exe',
+    'Registry::HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\App Paths\\WinRAR.exe'
+  ].map(readRegistryDefaultValue);
+
+  const pathCandidates = [
+    ...registryCandidates,
+    path.join(programFiles, 'WinRAR\\WinRAR.exe'),
+    path.join(programFilesX86, 'WinRAR\\WinRAR.exe'),
+    path.join(localAppData, 'Programs\\WinRAR\\WinRAR.exe'),
+    findExecutableOnPath('WinRAR.exe'),
+    findExecutableOnPath('rar.exe')
+  ];
+
+  return pathCandidates.find(fileExists) || '';
+};
+
+const appIconCache = new Map();
+
+const makeShellAppInfo = (name, executablePath) => {
+  const available = executablePath !== '';
+  return {
+    available,
+    path: executablePath,
+    iconUrl: available && executablePath && fileExists(executablePath)
+      ? `/api/app-icon/${encodeURIComponent(name)}`
+      : ''
+  };
+};
+
 const getShellApps = () => {
   const userProfile = process.env.USERPROFILE || 'C:\\Users\\tiend';
   const localAppData = process.env.LOCALAPPDATA || path.join(userProfile, 'AppData\\Local');
@@ -1394,17 +1456,7 @@ const getShellApps = () => {
   }
 
   // 2. WinRAR paths
-  const winrarPaths = [
-    path.join(programFiles, 'WinRAR\\WinRAR.exe'),
-    path.join(programFilesX86, 'WinRAR\\WinRAR.exe')
-  ];
-  let winrarPath = '';
-  for (const p of winrarPaths) {
-    if (fileExists(p)) {
-      winrarPath = p;
-      break;
-    }
-  }
+  const winrarPath = findWinrarPath({ programFiles, programFilesX86, localAppData });
 
   // 3. Antigravity paths
   const antigravityPaths = [
@@ -1435,10 +1487,10 @@ const getShellApps = () => {
   }
 
   return {
-    terminal: { available: true, path: wtPath || 'powershell' },
-    vscode: { available: vscodePath !== '', path: vscodePath },
-    antigravity: { available: antigravityPath !== '', path: antigravityPath },
-    winrar: { available: winrarPath !== '', path: winrarPath }
+    terminal: makeShellAppInfo('terminal', wtPath || 'powershell'),
+    vscode: makeShellAppInfo('vscode', vscodePath),
+    antigravity: makeShellAppInfo('antigravity', antigravityPath),
+    winrar: makeShellAppInfo('winrar', winrarPath)
   };
 };
 
@@ -1452,11 +1504,44 @@ app.get('/api/shell-apps', (req, res) => {
   }
 });
 
+app.get('/api/app-icon/:appName', async (req, res) => {
+  try {
+    const apps = getShellApps();
+    const appInfo = apps[req.params.appName];
+    if (!appInfo?.available || !appInfo.path || !fileExists(appInfo.path)) {
+      return res.status(404).json({ error: 'Application icon is not available' });
+    }
+
+    const cacheKey = `${req.params.appName}:${appInfo.path}`;
+    let pngBuffer = appIconCache.get(cacheKey);
+    if (!pngBuffer) {
+      const { app: electronApp, nativeImage } = require('electron');
+      let image = await electronApp.getFileIcon(appInfo.path, { size: 'normal' });
+      if (image.isEmpty()) {
+        image = nativeImage.createFromPath(appInfo.path);
+      }
+      if (image.isEmpty()) {
+        return res.status(404).json({ error: 'Application icon could not be loaded' });
+      }
+      pngBuffer = image.resize({ width: 32, height: 32 }).toPNG();
+      appIconCache.set(cacheKey, pngBuffer);
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(pngBuffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 17.5 Get Dynamic Context Menu from Registry
 app.get('/api/context-menu', (req, res) => {
-  const targetPath = req.query.path;
-  if (!targetPath) {
-    return res.status(400).json({ error: 'Missing path' });
+  let targetPath;
+  try {
+    targetPath = normalizeInputPath(req.query.path, { mustExist: true });
+  } catch (err) {
+    return sendPathError(res, err);
   }
   
   getContextMenu(targetPath, async (err, items) => {

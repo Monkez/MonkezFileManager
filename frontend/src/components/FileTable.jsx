@@ -34,18 +34,20 @@ const FileTable = ({
     <table className="file-table" style={{ opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s ease' }}>
       <thead>
         <tr>
-          <th onClick={() => onSort('name')}>Name {sortMarker('name')}</th>
-          <th style={{ width: '80px', textAlign: 'right' }} onClick={() => onSort('size')}>Size {sortMarker('size')}</th>
-          <th style={{ width: '130px' }} onClick={() => onSort('mtime')}>Date Modified {sortMarker('mtime')}</th>
-          <th style={{ width: '60px' }} onClick={() => onSort('ext')}>Type {sortMarker('ext')}</th>
+          <th className="file-table-name-column" onClick={() => onSort('name')}>Name {sortMarker('name')}</th>
+          <th className="file-table-size-column" onClick={() => onSort('size')}>Size {sortMarker('size')}</th>
+          <th className="file-table-date-column" onClick={() => onSort('mtime')}>Date Modified {sortMarker('mtime')}</th>
+          <th className="file-table-type-column" onClick={() => onSort('ext')}>Type {sortMarker('ext')}</th>
         </tr>
       </thead>
       <tbody>
         {parentPath && !filterQuery && (
           <tr onDoubleClick={onGoUp}>
             <td colSpan={4} className="file-item-name-cell" style={{ color: 'var(--accent-color)' }}>
-              <Folder size={16} className="file-icon folder" style={{ color: 'var(--accent-color)' }} />
-              <span>.. (Parent Folder)</span>
+              <div className="file-name-content">
+                <Folder size={16} className="file-icon folder" style={{ color: 'var(--accent-color)' }} />
+                <span className="file-name-text">.. (Parent Folder)</span>
+              </div>
             </td>
           </tr>
         )}
@@ -68,14 +70,16 @@ const FileTable = ({
               onContextMenu={(event) => onContextMenu(item, idx, event)}
             >
               <td className="file-item-name-cell">
-                {getFileIcon(item)}
-                <span className="sidebar-item-text" title={item.name}>
-                  {getDisplayName(item, showExtensions)}
-                </span>
+                <div className="file-name-content">
+                  {getFileIcon(item)}
+                  <span className="file-name-text" title={item.name}>
+                    {getDisplayName(item, showExtensions)}
+                  </span>
+                </div>
               </td>
-              <td style={{ textAlign: 'right' }}>{item.isDirectory ? '<DIR>' : formatSize(item.size)}</td>
-              <td>{new Date(item.mtime).toLocaleString()}</td>
-              <td>{item.isDirectory ? 'Folder' : item.ext.toUpperCase().replace('.', '') || 'File'}</td>
+              <td className="file-table-size-column">{item.isDirectory ? '<DIR>' : formatSize(item.size)}</td>
+              <td className="file-table-date-column">{new Date(item.mtime).toLocaleString()}</td>
+              <td className="file-table-type-column">{item.isDirectory ? 'Folder' : item.ext.toUpperCase().replace('.', '') || 'File'}</td>
             </tr>
           );
         })}

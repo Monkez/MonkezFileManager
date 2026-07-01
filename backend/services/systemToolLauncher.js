@@ -18,7 +18,10 @@ const getSystemToolLaunchSpec = (tool, env = process.env) => {
     case 'disk-management':
       return [mmc, [path.join(system32, 'diskmgmt.msc')]];
     case 'device-manager':
-      return [mmc, [path.join(system32, 'devmgmt.msc')]];
+      // Launch through Control Panel instead of spawning mmc.exe directly.
+      // Some Windows policies deny unsigned packaged apps from creating MMC
+      // processes (EACCES), while control.exe remains the supported shell entry.
+      return [path.join(system32, 'control.exe'), ['hdwwiz.cpl']];
     case 'registry-editor':
       return ['regedit.exe', []];
     case 'command-prompt':

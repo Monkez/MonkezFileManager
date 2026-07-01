@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs');
 const path = require('path');
 
 // Disable GPU rasterization to fix blurry font rendering on Windows
@@ -6,6 +7,43 @@ app.commandLine.appendSwitch('disable-gpu-rasterization');
 
 
 let mainWindow = null;
+
+const getLaunchTargetPath = (args) => {
+  for (let i = args.length - 1; i >= 0; i -= 1) {
+    const arg = args[i];
+    if (
+      typeof arg !== 'string'
+      || arg.startsWith('--')
+      || arg === '.'
+      || arg.endsWith('.js')
+      || arg === process.execPath
+    ) {
+      continue;
+    }
+
+    try {
+      if (fs.existsSync(arg)) {
+        return arg;
+      }
+    } catch (err) {
+      // Ignore invalid shell arguments and keep scanning.
+    }
+  }
+  return '';
+};
+
+const makeAppUrl = (targetPath = '') => {
+  const url = new URL('http://localhost:3001');
+  if (targetPath) {
+    url.searchParams.set('path', targetPath);
+  }
+  return url.toString();
+};
+
+const navigateWindowToPath = (targetPath) => {
+  if (!mainWindow || !targetPath) return;
+  mainWindow.loadURL(makeAppUrl(targetPath));
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -22,25 +60,8 @@ function createWindow() {
     }
   });
 
-  // Pass path argument via URL search params
-  const args = process.argv;
-  let targetPath = '';
-  // When launched from registry context menu, it passes the directory path as an argument
-  if (args.length >= 2) {
-    const lastArg = args[args.length - 1];
-    // Simple check: if it doesn't look like an electron switch (--) and it's not the executable path
-    if (!lastArg.startsWith('--') && !lastArg.endsWith('.js') && !lastArg.endsWith('.exe')) {
-      targetPath = lastArg;
-    }
-  }
-
-  const url = new URL('http://localhost:3001');
-  if (targetPath) {
-    url.searchParams.set('path', targetPath);
-  }
-
   // Open the local server URL
-  mainWindow.loadURL(url.toString());
+  mainWindow.loadURL(makeAppUrl(getLaunchTargetPath(process.argv)));
 
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -66,6 +87,7 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
+      navigateWindowToPath(getLaunchTargetPath(commandLine));
     }
   });
 
@@ -90,7 +112,6 @@ app.on('quit', () => {
 
 // Native file drag-out support
 ipcMain.on('ondragstart', (event, files) => {
-  const fs = require('fs');
   const { nativeImage } = require('electron');
   let isDirectory = false;
   try {

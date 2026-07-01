@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Pane from './components/Pane';
 import PreviewPanel from './components/PreviewPanel';
@@ -19,6 +19,10 @@ import {
 } from 'lucide-react';
 
 const App = () => {
+  const getSystemTheme = () => (
+    window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  );
+
   const connectTaskEvents = useTaskStore(state => state.connectTaskEvents);
   const disconnectTaskEvents = useTaskStore(state => state.disconnectTaskEvents);
   const connectPowerSendEvents = usePowerSendStore(state => state.connectEvents);
@@ -67,10 +71,14 @@ const App = () => {
   });
 
   // Theme & Settings States
-  const [theme, setTheme] = useState(() => {
+  const [themePreference, setThemePreference] = useState(() => {
     const saved = localStorage.getItem('monkez_theme');
     return saved || 'dark';
   });
+  const [systemTheme, setSystemTheme] = useState(getSystemTheme);
+  const theme = themePreference === 'system' ? systemTheme : themePreference;
+  const topbarRef = useRef(null);
+  const [topbarAutoCompact, setTopbarAutoCompact] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -80,9 +88,19 @@ const App = () => {
   const [systemPaths, setSystemPaths] = useState(null);
 
   const handleThemeChange = (newTheme) => {
-    setTheme(newTheme);
+    setThemePreference(newTheme);
     localStorage.setItem('monkez_theme', newTheme);
   };
+
+  useEffect(() => {
+    const themeClasses = ['theme-dark', 'theme-light', 'theme-midnight', 'theme-obsidian'];
+    document.body.classList.remove(...themeClasses);
+    document.body.classList.add(`theme-${theme}`);
+
+    return () => {
+      document.body.classList.remove(...themeClasses);
+    };
+  }, [theme]);
 
   const [showHiddenFiles, setShowHiddenFiles] = useState(() => {
     const saved = localStorage.getItem('monkez_show_hidden');
@@ -222,6 +240,59 @@ const App = () => {
     return () => disconnectPowerSendEvents();
   }, [connectPowerSendEvents, disconnectPowerSendEvents]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: light)');
+    if (!mediaQuery) return;
+
+    const handleSystemThemeChange = () => {
+      setSystemTheme(mediaQuery.matches ? 'light' : 'dark');
+    };
+
+    handleSystemThemeChange();
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!showTopbar) {
+      setTopbarAutoCompact(false);
+      return;
+    }
+
+    const toolbar = topbarRef.current;
+    if (!toolbar) return;
+
+    let frameId = 0;
+    const compactClass = 'auto-compact';
+
+    const updateCompactMode = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        const wasCompact = toolbar.classList.contains(compactClass);
+        if (wasCompact) toolbar.classList.remove(compactClass);
+
+        const availableWidth = toolbar.clientWidth;
+        const requiredWidth = toolbar.scrollWidth;
+        const shouldCompact = requiredWidth > availableWidth - 12;
+
+        if (wasCompact) toolbar.classList.add(compactClass);
+        setTopbarAutoCompact(shouldCompact);
+      });
+    };
+
+    updateCompactMode();
+
+    const resizeObserver = new ResizeObserver(updateCompactMode);
+    resizeObserver.observe(toolbar);
+    window.addEventListener('resize', updateCompactMode);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateCompactMode);
+    };
+  }, [showTopbar, panes.length, showSidebar, showPreview, showHiddenFiles, showExtensions]);
+
   // Listen to real-time drive plug/unplug events (USB/external disks)
   useEffect(() => {
     const eventSource = new EventSource('/api/watch-drives');
@@ -355,11 +426,11 @@ const App = () => {
     window.dispatchEvent(event);
   };
 
-  const refreshAllPanes = () => {
+  const refreshAllPanes = useCallback(() => {
     window.dispatchEvent(new CustomEvent('refresh-all-panes'));
-  };
+  }, []);
 
-  const runHistoryAction = async (action) => {
+  const runHistoryAction = useCallback(async (action) => {
     try {
       const response = await fetch(`/api/${action}`, {
         method: 'POST',
@@ -373,16 +444,16 @@ const App = () => {
     } catch (err) {
       alert(`Error: ${err.message}`);
     }
-  };
+  }, [refreshAllPanes]);
 
   // Open modals
-  const openModal = (type, data = {}) => {
+  const openModal = useCallback((type, data = {}) => {
     setModal({
       isOpen: true,
       type,
       data
     });
-  };
+  }, []);
 
   const closeModal = () => {
     setModal({ isOpen: false, type: '', data: {} });
@@ -424,7 +495,7 @@ const App = () => {
   };
 
   // Handle hotkeys (F5 F6) for file copy/move to adjacent pane
-  const handleF5F6Shortcut = (action) => {
+  const handleF5F6Shortcut = useCallback((action) => {
     const activeSelection = paneSelections[activePaneId];
     if (!activeSelection || activeSelection.selectedPaths.length === 0) return;
 
@@ -445,7 +516,7 @@ const App = () => {
         refreshAllPanes();
       }
     });
-  };
+  }, [activePaneId, paneSelections, panes, openModal, refreshAllPanes]);
 
   // Listen to global shortcuts (F5, F6, Ctrl+C, Ctrl+X, Ctrl+V) on window object
   useEffect(() => {
@@ -528,7 +599,7 @@ const App = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [panes, activePaneId, paneSelections, clipboard]);
+  }, [panes, activePaneId, paneSelections, clipboard, handleF5F6Shortcut, runHistoryAction]);
 
   // Modal Submit Handlers
   const handleModalSubmit = async (fields) => {
@@ -751,7 +822,7 @@ const App = () => {
       {/* Top Main Command Toolbar */}
       <div className={`topbar-shell ${showTopbar ? 'open' : 'collapsed'}`}>
         {showTopbar && (
-          <header className="toolbar-global">
+          <header ref={topbarRef} className={`toolbar-global ${topbarAutoCompact ? 'auto-compact' : ''}`}>
         {/* View Options Group */}
         <div className="toolbar-group">
           <button 
@@ -1205,9 +1276,19 @@ const App = () => {
                   Giao Diện Hệ Thống (Themes)
                 </div>
                 <div className="theme-options" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className={`modal-btn ${themePreference === 'system' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
+                    style={{ fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    onClick={() => handleThemeChange('system')}
+                    title={`Đang theo hệ thống: ${systemTheme === 'light' ? 'Sáng' : 'Tối'}`}
+                  >
+                    <Monitor size={13} />
+                    Auto System
+                  </button>
                   <button 
                     type="button"
-                    className={`modal-btn ${theme === 'dark' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
+                    className={`modal-btn ${themePreference === 'dark' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
                     style={{ fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => handleThemeChange('dark')}
                   >
@@ -1216,7 +1297,7 @@ const App = () => {
                   </button>
                   <button 
                     type="button"
-                    className={`modal-btn ${theme === 'light' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
+                    className={`modal-btn ${themePreference === 'light' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
                     style={{ fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => handleThemeChange('light')}
                   >
@@ -1225,7 +1306,7 @@ const App = () => {
                   </button>
                   <button 
                     type="button"
-                    className={`modal-btn ${theme === 'midnight' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
+                    className={`modal-btn ${themePreference === 'midnight' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
                     style={{ fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => handleThemeChange('midnight')}
                   >
@@ -1234,7 +1315,7 @@ const App = () => {
                   </button>
                   <button 
                     type="button"
-                    className={`modal-btn ${theme === 'obsidian' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
+                    className={`modal-btn ${themePreference === 'obsidian' ? 'modal-btn-primary' : 'modal-btn-secondary'}`}
                     style={{ fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => handleThemeChange('obsidian')}
                   >
@@ -1385,7 +1466,7 @@ const App = () => {
                     localStorage.removeItem('monkez_topbar_open');
                     localStorage.removeItem('monkez_status_bar_open');
                     localStorage.removeItem('monkez_shortcut_hints');
-                    setTheme('dark');
+                    setThemePreference('dark');
                     setShowHiddenFiles(true);
                     setShowExtensions(true);
                     setOpenInDefaultApp(true);
