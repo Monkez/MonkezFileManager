@@ -33,8 +33,10 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 6. Menu Chuột Phải Tiện Ích (Context Menu Actions)
 - Mỗi lệnh trong menu chuột phải đều được tích hợp **Icon minh họa** để dễ dàng nhận diện.
 - Bấm chuột phải lên tệp hoặc vùng trống để mở Menu ngữ cảnh:
-  - **Windows Shell Actions (thử nghiệm)**: Ứng dụng lấy các verb mà Windows Shell công bố cho file, hiển thị trong một nhóm riêng và truyền lựa chọn lại cho Shell thực hiện.
-  - **Create shortcut here**: Tạo shortcut `.lnk` chuẩn Windows trong thư mục hiện tại.
+  - **Menu phân cấp gọn gàng**: Lệnh thường dùng nằm ở menu chính; tác vụ ít dùng, công cụ ngoài và Windows verb nằm trong trang **Thao tác khác**.
+  - **Windows Shell Actions (thử nghiệm)**: Chỉ tải verb khi người dùng mở **Các tùy chọn Windows**, sau đó truyền lựa chọn lại cho Shell thực hiện.
+  - **Tạo shortcut tại đây**: Tạo shortcut `.lnk` chuẩn Windows trong thư mục hiện tại.
+  - **Thuộc tính**: Gọi trực tiếp Properties của Windows từ menu chính.
   - Cơ chế đọc Registry cũ vẫn được giữ trong backend làm phương án tương thích, nhưng không còn được mô tả là menu Explorer đầy đủ.
   - Sao chép đường dẫn tuyệt đối (`Copy Path`).
   - Mở thư mục chứa tệp trong Windows Explorer gốc (`Show in Explorer`).

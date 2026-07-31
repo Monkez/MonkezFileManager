@@ -36,6 +36,10 @@ const createWindowsShellRouter = (windowsShellService) => {
     windowsShellService.invokeVerb(req.body.path, req.body.verbId)
   ));
 
+  router.post('/invoke-canonical-verb', handle(req =>
+    windowsShellService.invokeCanonicalVerb(req.body.path, req.body.verb)
+  ));
+
   router.post('/create-shortcut', handle(req =>
     windowsShellService.createShortcut(req.body.path, req.body.destination)
   ));

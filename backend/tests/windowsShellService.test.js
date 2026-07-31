@@ -84,6 +84,10 @@ test('rejects unsupported platforms and invalid clipboard modes', async () => {
       () => service.invokeVerb(target, -1),
       /valid Shell verb ID/
     );
+    assert.throws(
+      () => service.invokeCanonicalVerb(target, 'format'),
+      /Unsupported canonical Shell verb/
+    );
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

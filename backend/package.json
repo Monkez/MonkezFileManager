@@ -1,6 +1,6 @@
 {
   "name": "monkez-file-manager-backend",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "main": "server.js",
   "bin": "server.js",
   "pkg": {
