@@ -2,20 +2,6 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
-## [1.7.1] - 31-07-2026
-
-### Cải Tiến Trải Nghiệm
-
-- Thiết kế lại menu chuột phải theo hướng ngắn gọn, nhất quán và ưu tiên tác vụ thường dùng.
-- Gom Cắt, Sao chép, Đổi tên và Xóa thành một hàng lệnh nhanh.
-- Menu file/thư mục chính còn tối đa khoảng 7–9 mục; menu vùng trống còn 5 mục.
-- Chuyển Explorer, đường dẫn, shortcut, nén, tính dung lượng, công cụ phát triển và xóa vĩnh viễn sang **Thao tác khác**.
-- Windows Shell verb chỉ được tải khi mở **Các tùy chọn Windows**, tránh menu dài và thay đổi kích thước sau khi mở.
-- Loại các lựa chọn WinRAR hard-code bị trùng; extension vẫn có thể xuất hiện qua Windows Shell.
-- Bổ sung **Thuộc tính** ở menu chính và tự ẩn lệnh một-mục khi đang chọn nhiều mục.
-- Đồng bộ nhãn menu chính sang tiếng Việt và tăng độ tương phản.
-- Thêm tài liệu `docs/context-menu.md`.
-
 ## [1.7.0] - 31-07-2026
 
 ### Thêm Mới

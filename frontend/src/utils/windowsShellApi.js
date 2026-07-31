@@ -31,12 +31,6 @@ export const invokeWindowsShellVerb = (targetPath, verbId) =>
     verbId
   }));
 
-export const invokeWindowsCanonicalVerb = (targetPath, verb) =>
-  requestJson('/api/windows-shell/invoke-canonical-verb', jsonPost({
-    path: targetPath,
-    verb
-  }));
-
 export const createWindowsShortcut = (targetPath, destination) =>
   requestJson('/api/windows-shell/create-shortcut', jsonPost({
     path: targetPath,

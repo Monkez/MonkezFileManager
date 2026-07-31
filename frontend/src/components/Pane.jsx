@@ -6,7 +6,6 @@ import { getContextMenuPosition } from '../utils/contextMenuPosition';
 import {
   createWindowsShortcut,
   getWindowsShellVerbs,
-  invokeWindowsCanonicalVerb,
   invokeWindowsShellVerb,
   pasteWithWindowsShell,
   setWindowsShellClipboard
@@ -19,7 +18,7 @@ import {
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
-  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle, Info
+  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -231,7 +230,6 @@ const Pane = ({
     horizontalOrigin: 'cursor',
     targetItem: null
   });
-  const [contextMenuPage, setContextMenuPage] = useState('main');
   const [shellVerbs, setShellVerbs] = useState([]);
   const [shellVerbsLoading, setShellVerbsLoading] = useState(false);
   const shellVerbRequestRef = useRef(0);
@@ -455,10 +453,6 @@ const Pane = ({
     window.dispatchEvent(new CustomEvent('monkez-close-context-menus', {
       detail: { sourcePaneId: paneId }
     }));
-    shellVerbRequestRef.current++;
-    setContextMenuPage('main');
-    setShellVerbs([]);
-    setShellVerbsLoading(false);
     setContextMenu(nextMenu);
   };
 
@@ -480,15 +474,7 @@ const Pane = ({
       menuEl.style.left = `${position.x}px`;
       menuEl.style.maxHeight = `${position.maxHeight}px`;
     }
-  }, [
-    contextMenu.isOpen,
-    contextMenu.x,
-    contextMenu.y,
-    contextMenu.horizontalOrigin,
-    contextMenuPage,
-    shellVerbsLoading,
-    shellVerbs.length
-  ]);
+  }, [contextMenu.isOpen, contextMenu.x, contextMenu.y, contextMenu.horizontalOrigin]);
 
   const handleRowContextMenu = (item, idx, e) => {
     e.preventDefault();
@@ -510,6 +496,29 @@ const Pane = ({
       horizontalOrigin: 'cursor',
       targetItem: item
     });
+
+    if (shellFirstMode) {
+      const requestId = ++shellVerbRequestRef.current;
+      setShellVerbs([]);
+      setShellVerbsLoading(true);
+      getWindowsShellVerbs(item.path)
+        .then(data => {
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbs(Array.isArray(data.verbs) ? data.verbs : []);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load Windows Shell verbs:', err);
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbs([]);
+          }
+        })
+        .finally(() => {
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbsLoading(false);
+          }
+        });
+    }
   };
 
   const isEmptyAreaTarget = (target) => {
@@ -902,52 +911,6 @@ const Pane = ({
       }, 800);
     } catch (err) {
       alert(`Không thể chạy tác vụ Windows "${verb.name}": ${err.message}`);
-    }
-  };
-
-  const showWindowsShellActions = () => {
-    const targetPath = contextMenu.targetItem?.path;
-    if (!targetPath || !shellFirstMode) return;
-
-    const requestId = ++shellVerbRequestRef.current;
-    setContextMenuPage('windows');
-    setShellVerbs([]);
-    setShellVerbsLoading(true);
-    getWindowsShellVerbs(targetPath)
-      .then(data => {
-        if (shellVerbRequestRef.current === requestId) {
-          const uniqueNames = new Set();
-          const verbs = (Array.isArray(data.verbs) ? data.verbs : []).filter(verb => {
-            const normalizedName = String(verb.name || '').trim().toLocaleLowerCase();
-            if (!normalizedName || uniqueNames.has(normalizedName)) return false;
-            uniqueNames.add(normalizedName);
-            return true;
-          });
-          setShellVerbs(verbs);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load Windows Shell verbs:', err);
-        if (shellVerbRequestRef.current === requestId) {
-          setShellVerbs([]);
-        }
-      })
-      .finally(() => {
-        if (shellVerbRequestRef.current === requestId) {
-          setShellVerbsLoading(false);
-        }
-      });
-  };
-
-  const handleProperties = async () => {
-    const targetPath = contextMenu.targetItem?.path;
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-    if (!targetPath) return;
-
-    try {
-      await invokeWindowsCanonicalVerb(targetPath, 'properties');
-    } catch (err) {
-      alert(`Không thể mở Thuộc tính: ${err.message}`);
     }
   };
 
@@ -2104,198 +2067,201 @@ const Pane = ({
           onClick={(e) => e.stopPropagation()}
         >
           {contextMenu.targetItem ? (
-            contextMenuPage === 'main' ? (
-              <>
-                {selectedNames.size <= 1 && (
-                  <div className="context-menu-item context-menu-default" onClick={() => { handleItemDoubleClick(contextMenu.targetItem); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
-                    <div className="context-menu-label"><ExternalLink size={14} /> <span>Mở</span></div>
-                  </div>
-                )}
-                <div className="context-menu-command-strip" aria-label="Thao tác nhanh">
-                  <button type="button" onClick={() => handleContextMenuAction('cut')} title="Cắt (Ctrl+X)">
-                    <Scissors size={16} /><span>Cắt</span>
-                  </button>
-                  <button type="button" onClick={() => handleContextMenuAction('copy')} title="Sao chép (Ctrl+C)">
-                    <Copy size={16} /><span>Sao chép</span>
-                  </button>
-                  <button type="button" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('rename'); }} title="Đổi tên (F2)">
-                    <Edit size={16} /><span>Đổi tên</span>
-                  </button>
-                  <button type="button" className="danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }} title="Xóa (Delete)">
-                    <Trash2 size={16} /><span>Xóa</span>
-                  </button>
-                </div>
-                <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}>
-                  <div className="context-menu-label"><Upload size={14} /> <span>Gửi qua Power Send…</span></div>
-                </div>
-                {selectedNames.size <= 1 && contextMenu.targetItem.ext === '.zip' && (
-                  <div className="context-menu-item" onClick={() => handleContextMenuAction('unzip')}>
-                    <div className="context-menu-label"><FolderOpen size={14} /> <span>Giải nén tại đây</span></div>
-                  </div>
-                )}
-                {selectedNames.size <= 1 && contextMenu.targetItem.isDirectory && (
-                  <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}>
-                    <div className="context-menu-label"><Bookmark size={14} /> <span>Thêm vào dấu trang</span></div>
-                  </div>
-                )}
-                <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => setContextMenuPage('more')}>
-                  <div className="context-menu-label"><MoreVertical size={14} /> <span>Thao tác khác…</span></div>
-                  <ChevronRight size={14} />
-                </div>
-                {selectedNames.size <= 1 && (
-                  <div className="context-menu-item" onClick={handleProperties}>
-                    <div className="context-menu-label"><Info size={14} /> <span>Thuộc tính</span></div>
-                  </div>
-                )}
-              </>
-            ) : contextMenuPage === 'more' ? (
-              <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}>
-                  <ChevronLeft size={15} /><span>Thao tác khác</span>
-                </div>
-                <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleRevealInExplorer(contextMenu.targetItem.path)}>
-                  <div className="context-menu-label"><Compass size={14} /> <span>Hiện trong Explorer</span></div>
-                </div>
-                <div className="context-menu-item" onClick={() => handleCopyPath(contextMenu.targetItem.path)}>
-                  <div className="context-menu-label"><Copy size={14} /> <span>Sao chép đường dẫn</span></div>
-                </div>
-                {selectedNames.size <= 1 && (
-                  <div className="context-menu-item" onClick={handleCreateShortcut}>
-                    <div className="context-menu-label"><Link size={14} /> <span>Tạo shortcut tại đây</span></div>
-                  </div>
-                )}
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}>
-                  <div className="context-menu-label"><Archive size={14} /> <span>Nén thành ZIP</span></div>
-                </div>
-                {selectedNames.size <= 1 && contextMenu.targetItem.isDirectory && (
-                  <div className="context-menu-item" onClick={() => handleCalculateSize(contextMenu.targetItem)}>
-                    <div className="context-menu-label"><Calculator size={14} /> <span>Tính dung lượng thư mục</span></div>
-                  </div>
-                )}
-                {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available) && (
-                  <div className="context-menu-item" onClick={() => setContextMenuPage('apps')}>
-                    <div className="context-menu-label"><ExternalLink size={14} /> <span>Mở bằng / công cụ…</span></div>
-                    <ChevronRight size={14} />
-                  </div>
-                )}
-                {shellFirstMode && selectedNames.size <= 1 && (
-                  <div className="context-menu-item" onClick={showWindowsShellActions}>
-                    <div className="context-menu-label"><Monitor size={14} /> <span>Các tùy chọn Windows…</span></div>
-                    <ChevronRight size={14} />
-                  </div>
-                )}
-                <div className="context-menu-divider" />
-                <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete-permanent'); }}>
-                  <div className="context-menu-label"><Trash size={14} /> <span>Xóa vĩnh viễn</span></div>
-                  <span className="context-menu-shortcut">Shift+Del</span>
-                </div>
-              </>
-            ) : contextMenuPage === 'apps' ? (
-              <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('more')}>
-                  <ChevronLeft size={15} /><span>Mở bằng / công cụ</span>
-                </div>
-                <div className="context-menu-divider" />
-                {shellApps.terminal.available && (
-                  <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', contextMenu.targetItem.path)}>
-                    <div className="context-menu-label">{renderShellAppIcon('terminal', Terminal)} <span>Mở Terminal tại đây</span></div>
-                  </div>
-                )}
-                {shellApps.vscode.available && (
-                  <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', contextMenu.targetItem.path)}>
-                    <div className="context-menu-label">{renderShellAppIcon('vscode', Code)} <span>Mở bằng VS Code</span></div>
-                  </div>
-                )}
-                {shellApps.antigravity.available && (
-                  <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', contextMenu.targetItem.path)}>
-                    <div className="context-menu-label">{renderShellAppIcon('antigravity', Cpu)} <span>Mở bằng Antigravity IDE</span></div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('more')}>
-                  <ChevronLeft size={15} /><span>Tùy chọn Windows</span>
-                </div>
-                <div className="context-menu-divider" />
-                {shellVerbsLoading ? (
-                  <div className="context-menu-item disabled">
-                    <div className="context-menu-label">
-                      <LoaderCircle size={14} className="shell-verb-spinner" />
-                      <span>Đang tải tác vụ hệ thống…</span>
-                    </div>
-                  </div>
-                ) : shellVerbs.length === 0 ? (
-                  <div className="context-menu-empty">Không có tùy chọn bổ sung.</div>
-                ) : shellVerbs.map(verb => (
-                  <div className="context-menu-item" key={`${verb.id}-${verb.name}`} onClick={() => handleWindowsShellVerb(verb)}>
-                    <div className="context-menu-label"><ExternalLink size={14} /><span>{verb.name}</span></div>
-                  </div>
-                ))}
-              </>
-            )
-          ) : contextMenuPage === 'main' ? (
             <>
-              <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkdir'); }}>
-                <div className="context-menu-label"><FolderPlus size={14} /> <span>Thư mục mới</span></div>
-                <span className="context-menu-shortcut">F7</span>
+              <div className="context-menu-item" onClick={() => { handleItemDoubleClick(contextMenu.targetItem); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ExternalLink size={14} /> <span>Open</span></div>
               </div>
-              <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkfile'); }}>
-                <div className="context-menu-label"><FilePlus size={14} /> <span>Tệp mới</span></div>
+              <div className="context-menu-item" onClick={() => handleRevealInExplorer(contextMenu.targetItem.path)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Compass size={14} /> <span>Show in Explorer</span></div>
               </div>
-              <div className={`context-menu-item ${!shellFirstMode && clipboard.paths.length === 0 ? 'disabled' : ''}`} onClick={() => { if (shellFirstMode || clipboard.paths.length > 0) handleContextMenuAction('paste'); }}>
-                <div className="context-menu-label"><ClipboardPaste size={14} /> <span>Dán</span></div>
-                <span className="context-menu-shortcut">Ctrl+V</span>
-              </div>
-              <div className="context-menu-item" onClick={() => { fetchFiles(filesData.currentPath); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
-                <div className="context-menu-label"><RefreshCw size={14} /> <span>Làm mới</span></div>
+              <div className="context-menu-item" onClick={() => handleCopyPath(contextMenu.targetItem.path)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy Path</span></div>
               </div>
               <div className="context-menu-divider" />
-              <div className="context-menu-item" onClick={() => setContextMenuPage('more')}>
-                <div className="context-menu-label"><MoreVertical size={14} /> <span>Thao tác khác…</span></div>
-                <ChevronRight size={14} />
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('copy')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy</span></div>
+                <span className="context-menu-shortcut">Ctrl+C</span>
               </div>
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('cut')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Scissors size={14} /> <span>Cut</span></div>
+                <span className="context-menu-shortcut">Ctrl+X</span>
+              </div>
+              {shellFirstMode && (
+                <>
+                  <div className="context-menu-item" onClick={handleCreateShortcut}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Link size={14} /> <span>Create shortcut here</span></div>
+                  </div>
+                  <div className="context-menu-divider" />
+                  <div className="context-menu-section-label">Windows Shell · thử nghiệm</div>
+                  {shellVerbsLoading ? (
+                    <div className="context-menu-item disabled">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <LoaderCircle size={14} className="shell-verb-spinner" />
+                        <span>Đang tải tác vụ hệ thống…</span>
+                      </div>
+                    </div>
+                  ) : shellVerbs.map(verb => (
+                    <div
+                      className="context-menu-item"
+                      key={`${verb.id}-${verb.name}`}
+                      onClick={() => handleWindowsShellVerb(verb)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ExternalLink size={14} />
+                        <span>{verb.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="context-menu-divider" />
+                </>
+              )}
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Upload size={14} /> <span>Network Send</span></div>
+              </div>
+              {contextMenu.targetItem.isDirectory && (
+                <>
+                  <div className="context-menu-item" onClick={() => handleContextMenuAction('network-receive')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Download size={14} /> <span>Network Receive Here</span></div>
+                  </div>
+                  <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Bookmark size={14} /> <span>Add to Bookmarks</span></div>
+                  </div>
+                  <div className="context-menu-item" onClick={() => handleCalculateSize(contextMenu.targetItem)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calculator size={14} /> <span>Calculate Folder Size</span></div>
+                  </div>
+                </>
+              )}
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('rename'); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Edit size={14} /> <span>Rename</span></div>
+                <span className="context-menu-shortcut">F2</span>
+              </div>
+              <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Trash2 size={14} /> <span>Delete</span></div>
+                <span className="context-menu-shortcut">Del</span>
+              </div>
+              <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete-permanent'); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Trash size={14} /> <span>Permanent Delete</span></div>
+                <span className="context-menu-shortcut">Shift+Del</span>
+              </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Archive size={14} /> <span>Compress to ZIP</span></div>
+              </div>
+              {contextMenu.targetItem.ext === '.zip' && (
+                <div className="context-menu-item" onClick={() => handleContextMenuAction('unzip')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderOpen size={14} /> <span>Extract ZIP Here</span></div>
+                </div>
+              )}
+              {shellApps.winrar.available && ['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
+                <>
+                  <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-here', contextMenu.targetItem.path)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Extract Here</span></div>
+                  </div>
+                  <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'extract-to', contextMenu.targetItem.path)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Extract to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}\"</span></div>
+                  </div>
+                </>
+              )}
+
+              {/* External explorer-like options */}
+              {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available || shellApps.winrar.available) && (
+                <>
+                  <div className="context-menu-divider" />
+                  {shellApps.terminal.available && (
+                    <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', contextMenu.targetItem.path)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('terminal', Terminal)} <span>Open Terminal here</span></div>
+                    </div>
+                  )}
+                  {shellApps.vscode.available && (
+                    <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', contextMenu.targetItem.path)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('vscode', Code)} <span>Open with VS Code</span></div>
+                    </div>
+                  )}
+                  {shellApps.antigravity.available && (
+                    <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', contextMenu.targetItem.path)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('antigravity', Cpu)} <span>Open with Antigravity IDE</span></div>
+                    </div>
+                  )}
+                  {shellApps.winrar.available && (
+                    <>
+                      <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'compress', contextMenu.targetItem.path)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Compress to "{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar"</span></div>
+                      </div>
+                      {['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
+                        <>
+                          <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'open', contextMenu.targetItem.path)}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('winrar', Archive)} <span>WinRAR: Open with WinRAR</span></div>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
             </>
           ) : (
             <>
-              <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}>
-                <ChevronLeft size={15} /><span>Thao tác khác</span>
+              <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkdir'); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FolderPlus size={14} /> <span>New Folder</span></div>
+                <span className="context-menu-shortcut">F7</span>
+              </div>
+              <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('mkfile'); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><FilePlus size={14} /> <span>New File</span></div>
+              </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => { 
+                setContextMenu(prev => ({ ...prev, isOpen: false })); 
+                let name = filesData.currentPath;
+                const parsed = name.replace(/\\/g, '/');
+                const parts = parsed.split('/').filter(Boolean);
+                if (parts.length > 0) name = parts[parts.length - 1];
+                openModal('bookmark', { name, path: filesData.currentPath }); 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Star size={14} /> <span>Add Current Folder to Bookmarks</span></div>
               </div>
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleRevealInExplorer(filesData.currentPath)}>
-                <div className="context-menu-label"><Compass size={14} /> <span>Mở trong Explorer</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Compass size={14} /> <span>Show in Explorer</span></div>
               </div>
               <div className="context-menu-item" onClick={() => handleCopyPath(filesData.currentPath)}>
-                <div className="context-menu-label"><Copy size={14} /> <span>Sao chép đường dẫn thư mục</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Copy size={14} /> <span>Copy Path</span></div>
               </div>
-              <div className="context-menu-item" onClick={() => {
-                setContextMenu(prev => ({ ...prev, isOpen: false }));
-                const parts = filesData.currentPath.replace(/\\/g, '/').split('/').filter(Boolean);
-                openModal('bookmark', { name: parts.at(-1) || filesData.currentPath, path: filesData.currentPath });
-              }}>
-                <div className="context-menu-label"><Star size={14} /> <span>Thêm thư mục vào dấu trang</span></div>
-              </div>
+              <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleContextMenuAction('network-receive')}>
-                <div className="context-menu-label"><Wifi size={14} /> <span>Nhận qua Power Send…</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Wifi size={14} /> <span>Network Receive Here</span></div>
               </div>
+              <div className="context-menu-divider" />
               {shellApps.terminal.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', filesData.currentPath)}>
-                  <div className="context-menu-label">{renderShellAppIcon('terminal', Terminal)} <span>Mở Terminal tại đây</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('terminal', Terminal)} <span>Open Terminal here</span></div>
                 </div>
               )}
               {shellApps.vscode.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', filesData.currentPath)}>
-                  <div className="context-menu-label">{renderShellAppIcon('vscode', Code)} <span>Mở thư mục bằng VS Code</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('vscode', Code)} <span>Open Folder in VS Code</span></div>
                 </div>
               )}
               {shellApps.antigravity.available && (
                 <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', filesData.currentPath)}>
-                  <div className="context-menu-label">{renderShellAppIcon('antigravity', Cpu)} <span>Mở thư mục bằng Antigravity IDE</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{renderShellAppIcon('antigravity', Cpu)} <span>Open Folder in Antigravity IDE</span></div>
                 </div>
               )}
+              {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available) && (
+                <div className="context-menu-divider" />
+              )}
+              <div 
+                className={`context-menu-item ${!shellFirstMode && clipboard.paths.length === 0 ? 'disabled' : ''}`}
+                onClick={() => { if (shellFirstMode || clipboard.paths.length > 0) handleContextMenuAction('paste'); }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardPaste size={14} /> <span>Paste</span></div>
+                <span className="context-menu-shortcut">Ctrl+V</span>
+              </div>
+              <div className="context-menu-divider" />
+              <div className="context-menu-item" onClick={() => { fetchFiles(filesData.currentPath); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><RefreshCw size={14} /> <span>Refresh</span></div>
+              </div>
             </>
           )}
         </div>

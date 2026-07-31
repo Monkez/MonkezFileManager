@@ -16,9 +16,8 @@ Chế độ được bật mặc định trong phiên bản thử nghiệm. Có 
 - `Ctrl+X` ghi file vào clipboard chuẩn của Windows với trạng thái Cut.
 - `Ctrl+V` gọi tác vụ Paste của Windows Shell tại thư mục đang mở.
 - Có thể Copy/Cut trong Monkez rồi Paste trong Explorer và ngược lại.
-- Menu chuột phải mở **Thao tác khác → Các tùy chọn Windows** để xem verb do Shell cung cấp. Danh sách chỉ được tải khi người dùng mở trang này.
-- **Thao tác khác → Tạo shortcut tại đây** tạo shortcut `.lnk` trong thư mục hiện tại bằng Windows COM.
-- **Thuộc tính** được đưa ra menu chính và gọi trực tiếp verb chuẩn của Windows.
+- Menu chuột phải của file hiển thị nhóm **Windows Shell · thử nghiệm**. Mỗi mục trong nhóm được lấy từ Shell và khi chọn sẽ được chính Shell verb đó thực hiện.
+- **Create shortcut here** tạo shortcut `.lnk` trong thư mục hiện tại bằng Windows COM.
 
 ## Khác Biệt So Với Task Manager Của Monkez
 
@@ -31,7 +30,7 @@ Khi Windows Shell mode đang bật:
 
 ## Giới Hạn Của Bản Thử Nghiệm
 
-- Trang **Các tùy chọn Windows** dùng các Shell verb công bố qua `Shell.Application`; chưa nhúng menu `IContextMenu` native đầy đủ vào cửa sổ Electron.
+- Danh sách hiện tại dùng các Shell verb công bố qua `Shell.Application`; chưa nhúng menu `IContextMenu` native đầy đủ vào cửa sổ Electron.
 - Một số extension chỉ xuất hiện trong menu hiện đại của Windows 11 hoặc cần `IContextMenu2/IContextMenu3` có thể chưa xuất hiện.
 - Danh sách verb hiện áp dụng cho item được nhấp chuột phải; chưa lấy menu Shell nền của vùng trống.
 - Paste là thao tác bất đồng bộ của Windows. Pane được làm mới bằng file watcher và thêm một lần refresh trễ.

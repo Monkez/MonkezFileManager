@@ -115,11 +115,6 @@ switch ($request.operation) {
     $matched.DoIt()
     Write-Result @{ success = $true; verbName = $matchedName }
   }
-  'invokeCanonicalVerb' {
-    $resolved = Get-ShellItem ([string]$request.path)
-    $resolved.Item.InvokeVerb([string]$request.verb)
-    Write-Result @{ success = $true; verb = $request.verb }
-  }
   'createShortcut' {
     $targetPath = [string]$request.path
     $destination = [string]$request.destination
@@ -292,19 +287,6 @@ class WindowsShellService {
       operation: 'invokeVerb',
       path: normalizedPath,
       verbId
-    });
-  }
-
-  invokeCanonicalVerb(targetPath, verb) {
-    const normalizedPath = normalizeInputPath(targetPath, { mustExist: true });
-    const allowedVerbs = new Set(['properties']);
-    if (!allowedVerbs.has(verb)) {
-      throw new PathValidationError('Unsupported canonical Shell verb');
-    }
-    return this.run({
-      operation: 'invokeCanonicalVerb',
-      path: normalizedPath,
-      verb
     });
   }
 
