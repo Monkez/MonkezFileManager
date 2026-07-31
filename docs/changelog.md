@@ -2,6 +2,15 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.7.2] - 31-07-2026
+
+### Cải Tiến Và Sửa Lỗi
+
+- Đưa Nén thành ZIP và Nén thành RAR ra menu chính, ngay trước Thuộc tính; thống nhất dùng icon WinRAR.
+- Chỉ giữ nhóm Giải nén theo ngữ cảnh của tệp nén và bỏ nhóm verb Windows Shell khỏi giao diện.
+- Ưu tiên đường dẫn package của Windows Terminal để lấy đúng icon ứng dụng.
+- Sửa Thuộc tính bằng helper Win32 đóng gói sẵn: lấy `IContextMenu` gốc của mục, tìm lệnh chuẩn `properties` rồi giao Shell thực hiện, thay cho `FolderItem.InvokeVerb`; helper duy trì các hộp thoại do shell extension như WinRAR tạo cho đến khi người dùng đóng.
+
 ## [1.7.1] - 31-07-2026
 
 ### Cải Tiến

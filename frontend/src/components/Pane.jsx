@@ -5,9 +5,7 @@ import FileGrid from './FileGrid';
 import { getContextMenuPosition } from '../utils/contextMenuPosition';
 import {
   createWindowsShortcut,
-  getWindowsShellVerbs,
   invokeWindowsCanonicalVerb,
-  invokeWindowsShellVerb,
   pasteWithWindowsShell,
   setWindowsShellClipboard
 } from '../utils/windowsShellApi';
@@ -19,7 +17,7 @@ import {
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
-  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle, Info
+  Home, Monitor, Download, Upload, Wifi, Link, Info
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -232,9 +230,6 @@ const Pane = ({
     targetItem: null
   });
   const [contextMenuPage, setContextMenuPage] = useState('main');
-  const [shellVerbs, setShellVerbs] = useState([]);
-  const [shellVerbsLoading, setShellVerbsLoading] = useState(false);
-  const shellVerbRequestRef = useRef(0);
 
   const [shellApps, setShellApps] = useState({
     terminal: { available: true, path: 'cmd', iconUrl: '' },
@@ -244,10 +239,6 @@ const Pane = ({
   });
 
   const renderShellAppIcon = (appName, FallbackIcon) => {
-    if (appName === 'terminal') {
-      return <FallbackIcon size={14} />;
-    }
-
     const iconUrl = shellApps[appName]?.iconUrl;
     if (iconUrl) {
       return (
@@ -482,9 +473,7 @@ const Pane = ({
     contextMenu.x,
     contextMenu.y,
     contextMenu.horizontalOrigin,
-    contextMenuPage,
-    shellVerbsLoading,
-    shellVerbs.length
+    contextMenuPage
   ]);
 
   const handleRowContextMenu = (item, idx, e) => {
@@ -508,28 +497,6 @@ const Pane = ({
       targetItem: item
     });
 
-    if (shellFirstMode) {
-      const requestId = ++shellVerbRequestRef.current;
-      setShellVerbs([]);
-      setShellVerbsLoading(true);
-      getWindowsShellVerbs(item.path)
-        .then(data => {
-          if (shellVerbRequestRef.current === requestId) {
-            setShellVerbs(Array.isArray(data.verbs) ? data.verbs : []);
-          }
-        })
-        .catch(err => {
-          console.error('Failed to load Windows Shell verbs:', err);
-          if (shellVerbRequestRef.current === requestId) {
-            setShellVerbs([]);
-          }
-        })
-        .finally(() => {
-          if (shellVerbRequestRef.current === requestId) {
-            setShellVerbsLoading(false);
-          }
-        });
-    }
   };
 
   const isEmptyAreaTarget = (target) => {
@@ -908,21 +875,6 @@ const Pane = ({
         return t;
       });
     });
-  };
-
-  const handleWindowsShellVerb = async (verb) => {
-    const targetPath = contextMenu.targetItem?.path;
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-    if (!targetPath) return;
-
-    try {
-      await invokeWindowsShellVerb(targetPath, verb.id);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refresh-all-panes'));
-      }, 800);
-    } catch (err) {
-      alert(`Không thể chạy tác vụ Windows "${verb.name}": ${err.message}`);
-    }
   };
 
   const handleProperties = async () => {
@@ -2119,17 +2071,23 @@ const Pane = ({
                   <div><FolderOpen size={16} /><span><strong>Tùy chọn tệp</strong><small>Đường dẫn, shortcut, xóa vĩnh viễn</small></span></div><ChevronRight size={15} />
                 </div>
                 {contextMenu.targetItem.isDirectory && <div className="context-menu-group-item" onClick={() => setContextMenuPage('share')}><div><Wifi size={16} /><span><strong>Thư mục & thông tin</strong><small>Nhận Power Send, tính dung lượng</small></span></div><ChevronRight size={15} /></div>}
-                <div className="context-menu-group-item" onClick={() => setContextMenuPage('archive')}>
-                  <div><Archive size={16} /><span><strong>Nén & giải nén</strong><small>ZIP và toàn bộ tùy chọn WinRAR</small></span></div><ChevronRight size={15} />
-                </div>
+                {(contextMenu.targetItem.ext === '.zip' || (shellApps.winrar.available && ['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext))) && (
+                  <div className="context-menu-group-item" onClick={() => setContextMenuPage('archive')}>
+                    <div>{renderShellAppIcon('winrar', Archive)}<span><strong>Giải nén</strong><small>ZIP và các lựa chọn WinRAR</small></span></div><ChevronRight size={15} />
+                  </div>
+                )}
                 {(shellApps.terminal.available || shellApps.vscode.available || shellApps.antigravity.available) && (
                   <div className="context-menu-group-item" onClick={() => setContextMenuPage('apps')}>
                     <div><Code size={16} /><span><strong>Mở bằng & công cụ</strong><small>Terminal, VS Code, Antigravity</small></span></div><ChevronRight size={15} />
                   </div>
                 )}
-                {shellFirstMode && (
-                  <div className="context-menu-group-item" onClick={() => setContextMenuPage('windows')}>
-                    <div><Monitor size={16} /><span><strong>Windows Shell</strong><small>Các tác vụ hệ thống đã đăng ký</small></span></div><ChevronRight size={15} />
+                <div className="context-menu-divider" />
+                <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}>
+                  <div className="context-menu-label">{renderShellAppIcon('winrar', Archive)}<span>Nén thành ZIP</span></div>
+                </div>
+                {shellApps.winrar.available && (
+                  <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'compress', contextMenu.targetItem.path)}>
+                    <div className="context-menu-label">{renderShellAppIcon('winrar', Archive)}<span>WinRAR: Nén thành “{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar”</span></div>
                   </div>
                 )}
                 <div className="context-menu-divider" />
@@ -2159,14 +2117,11 @@ const Pane = ({
               </>
             ) : contextMenuPage === 'archive' ? (
               <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Nén & giải nén</span></div>
+                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Giải nén</span></div>
                 <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('zip')}><div className="context-menu-label"><Archive size={14} /><span>Nén thành ZIP</span></div></div>
-                {contextMenu.targetItem.ext === '.zip' && <div className="context-menu-item" onClick={() => handleContextMenuAction('unzip')}><div className="context-menu-label"><FolderOpen size={14} /><span>Giải nén ZIP tại đây</span></div></div>}
+                {contextMenu.targetItem.ext === '.zip' && <div className="context-menu-item" onClick={() => handleContextMenuAction('unzip')}><div className="context-menu-label">{renderShellAppIcon('winrar', Archive)}<span>Giải nén ZIP tại đây</span></div></div>}
                 {shellApps.winrar.available && (
                   <>
-                    <div className="context-menu-divider" />
-                    <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'compress', contextMenu.targetItem.path)}><div className="context-menu-label">{renderShellAppIcon('winrar', Archive)}<span>WinRAR: Nén thành “{contextMenu.targetItem.ext ? contextMenu.targetItem.name.slice(0, -contextMenu.targetItem.ext.length) : contextMenu.targetItem.name}.rar”</span></div></div>
                     {['.rar', '.zip', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.cab', '.iso'].includes(contextMenu.targetItem.ext) && (
                       <>
                         <div className="context-menu-item" onClick={() => handleOpenWith('winrar', 'open', contextMenu.targetItem.path)}><div className="context-menu-label">{renderShellAppIcon('winrar', Archive)}<span>WinRAR: Mở tệp nén</span></div></div>
@@ -2177,25 +2132,13 @@ const Pane = ({
                   </>
                 )}
               </>
-            ) : contextMenuPage === 'apps' ? (
+            ) : (
               <>
                 <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Mở bằng & công cụ</span></div>
                 <div className="context-menu-divider" />
                 {shellApps.terminal.available && <div className="context-menu-item" onClick={() => handleOpenWith('terminal', 'open', contextMenu.targetItem.path)}><div className="context-menu-label">{renderShellAppIcon('terminal', Terminal)}<span>Mở Terminal tại đây</span></div></div>}
                 {shellApps.vscode.available && <div className="context-menu-item" onClick={() => handleOpenWith('vscode', 'open', contextMenu.targetItem.path)}><div className="context-menu-label">{renderShellAppIcon('vscode', Code)}<span>Mở bằng VS Code</span></div></div>}
                 {shellApps.antigravity.available && <div className="context-menu-item" onClick={() => handleOpenWith('antigravity', 'open', contextMenu.targetItem.path)}><div className="context-menu-label">{renderShellAppIcon('antigravity', Cpu)}<span>Mở bằng Antigravity IDE</span></div></div>}
-              </>
-            ) : (
-              <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Windows Shell · thử nghiệm</span></div>
-                <div className="context-menu-divider" />
-                {shellVerbsLoading ? (
-                  <div className="context-menu-item disabled"><div className="context-menu-label"><LoaderCircle size={14} className="shell-verb-spinner" /><span>Đang tải tác vụ hệ thống…</span></div></div>
-                ) : shellVerbs.length === 0 ? (
-                  <div className="context-menu-empty">Không có tác vụ Windows Shell.</div>
-                ) : shellVerbs.map(verb => (
-                  <div className="context-menu-item" key={`${verb.id}-${verb.name}`} onClick={() => handleWindowsShellVerb(verb)}><div className="context-menu-label"><ExternalLink size={14} /><span>{verb.name}</span></div></div>
-                ))}
               </>
             )
           ) : contextMenuPage === 'main' ? (

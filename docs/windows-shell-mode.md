@@ -16,8 +16,9 @@ Chế độ được bật mặc định trong phiên bản thử nghiệm. Có 
 - `Ctrl+X` ghi file vào clipboard chuẩn của Windows với trạng thái Cut.
 - `Ctrl+V` gọi tác vụ Paste của Windows Shell tại thư mục đang mở.
 - Có thể Copy/Cut trong Monkez rồi Paste trong Explorer và ngược lại.
-- Menu chuột phải của file có nhóm con **Windows Shell · thử nghiệm**. Mỗi mục trong nhóm được lấy từ Shell và khi chọn sẽ được chính Shell verb đó thực hiện.
+- Menu chuột phải không hiển thị danh sách verb Windows Shell tổng quát. Chế độ này vẫn xử lý Copy/Cut/Paste và các tích hợp Shell được thiết kế riêng.
 - **Create shortcut here** tạo shortcut `.lnk` trong thư mục hiện tại bằng Windows COM.
+- **Thuộc tính** gọi lệnh chuẩn từ menu ngữ cảnh gốc của Explorer thông qua helper Win32 đóng gói cùng ứng dụng.
 
 ## Khác Biệt So Với Task Manager Của Monkez
 

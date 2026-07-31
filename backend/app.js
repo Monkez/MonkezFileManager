@@ -1479,6 +1479,7 @@ const getShellApps = () => {
 
   // 4. Windows Terminal paths
   const wtPaths = [
+    path.join(localAppData, 'Microsoft\\WindowsApps\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\wt.exe'),
     path.join(localAppData, 'Microsoft\\WindowsApps\\wt.exe'),
     'C:\\Windows\\System32\\wt.exe'
   ];

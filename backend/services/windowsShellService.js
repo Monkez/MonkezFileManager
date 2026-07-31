@@ -115,11 +115,6 @@ switch ($request.operation) {
     $matched.DoIt()
     Write-Result @{ success = $true; verbName = $matchedName }
   }
-  'invokeCanonicalVerb' {
-    $resolved = Get-ShellItem ([string]$request.path)
-    $resolved.Item.InvokeVerb([string]$request.verb)
-    Write-Result @{ success = $true; verb = $request.verb }
-  }
   'createShortcut' {
     $targetPath = [string]$request.path
     $destination = [string]$request.destination
@@ -162,12 +157,14 @@ class WindowsShellService {
     platform = process.platform,
     spawnImpl = spawn,
     tempDir = os.tmpdir(),
-    timeoutMs = 15000
+    timeoutMs = 15000,
+    propertiesHelperPath = path.join(__dirname, '..', 'native', 'properties-helper.exe')
   } = {}) {
     this.platform = platform;
     this.spawnImpl = spawnImpl;
     this.tempDir = tempDir;
     this.timeoutMs = timeoutMs;
+    this.propertiesHelperPath = propertiesHelperPath;
   }
 
   getCapabilities() {
@@ -301,10 +298,29 @@ class WindowsShellService {
     if (!allowedVerbs.has(verb)) {
       throw new PathValidationError('Unsupported canonical Shell verb');
     }
-    return this.run({
-      operation: 'invokeCanonicalVerb',
-      path: normalizedPath,
-      verb
+    this.assertAvailable();
+    if (!fs.existsSync(this.propertiesHelperPath)) {
+      throw new Error('Windows Properties helper is missing. Run build-native.bat.');
+    }
+
+    return new Promise((resolve, reject) => {
+      const child = this.spawnImpl(this.propertiesHelperPath, [normalizedPath], {
+        detached: true,
+        windowsHide: true,
+        stdio: 'ignore'
+      });
+      let settled = false;
+      child.once('error', error => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      });
+      child.once('spawn', () => {
+        if (settled) return;
+        settled = true;
+        child.unref?.();
+        resolve({ success: true, verb, path: normalizedPath });
+      });
     });
   }
 

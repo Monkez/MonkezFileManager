@@ -8,10 +8,11 @@ Từ phiên bản 1.7.1, menu chuột phải giữ đầy đủ chức năng c�
 - **Đổi tên**, **Hiện trong Explorer**, **Gửi qua Power Send** và dấu trang của thư mục hiển thị trực tiếp.
 - **Tùy chọn tệp**: sao chép đường dẫn, tạo shortcut và xóa vĩnh viễn.
 - **Thư mục & thông tin**: nhận Power Send và tính dung lượng thư mục.
-- **Nén & giải nén**: ZIP cùng toàn bộ lựa chọn WinRAR trước đây.
+- **Nén thành ZIP** và **WinRAR: Nén thành RAR**: hiển thị trực tiếp ngay trước Thuộc tính và dùng biểu tượng WinRAR.
+- **Giải nén**: chỉ xuất hiện với tệp nén và chứa các lựa chọn giải nén phù hợp.
 - **Mở bằng & công cụ**: Terminal, VS Code và Antigravity IDE nếu được cài đặt.
-- **Windows Shell**: toàn bộ Shell verb mà Windows cung cấp cho mục đang chọn.
-- **Thuộc tính**: luôn nằm ở cuối menu chính và mở hộp thoại Properties của Windows.
+- Menu không còn nhóm verb **Windows Shell**; chế độ Windows Shell vẫn xử lý Copy/Cut/Paste khi được bật.
+- **Thuộc tính**: luôn nằm ở cuối menu chính và gọi đúng lệnh Properties từ menu ngữ cảnh gốc của Windows Explorer.
 
 ## Khi Bấm Vào Vùng Trống
 

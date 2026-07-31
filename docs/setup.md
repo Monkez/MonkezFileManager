@@ -62,6 +62,8 @@ Bản dựng sẽ được tạo bằng `electron-builder` và lưu trong thư m
   ```bash
   npm run package:electron
   ```
+Bước đóng gói sẽ tự chạy `build-native.bat` để tạo helper Thuộc tính. Nếu máy có Visual Studio 2022 C++ Build Tools, helper được biên dịch lại; nếu không, hệ thống dùng bản helper đã đóng gói sẵn trong mã nguồn.
+
 Bản dựng đóng gói hoàn thiện sẽ được xuất ra thư mục `/dist-electron-release/`.
 
 ## 6. Chạy Kiểm Thử

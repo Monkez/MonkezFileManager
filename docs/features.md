@@ -34,7 +34,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 - Mỗi lệnh trong menu chuột phải đều được tích hợp **Icon minh họa** để dễ dàng nhận diện.
 - Hàng đầu của menu tệp/thư mục đặt **Mở, Copy, Paste, Cut, Delete** cạnh nhau; các lệnh thường dùng khác hiển thị trực tiếp và chức năng chuyên biệt được gom nhóm mà không cắt bỏ lựa chọn cũ.
 - Bấm chuột phải lên tệp hoặc vùng trống để mở Menu ngữ cảnh:
-  - **Windows Shell Actions (thử nghiệm)**: Ứng dụng lấy các verb mà Windows Shell công bố cho file, hiển thị trong một nhóm riêng và truyền lựa chọn lại cho Shell thực hiện.
+  - Không hiển thị danh sách verb Windows Shell tổng quát; Windows Shell mode chỉ đảm nhiệm các tích hợp đã thiết kế như Copy/Cut/Paste, shortcut và Properties.
   - **Create shortcut here**: Tạo shortcut `.lnk` chuẩn Windows trong thư mục hiện tại.
   - Cơ chế đọc Registry cũ vẫn được giữ trong backend làm phương án tương thích, nhưng không còn được mô tả là menu Explorer đầy đủ.
   - Sao chép đường dẫn tuyệt đối (`Copy Path`).
@@ -52,7 +52,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **VS Code**: Mở file hoặc thư mục trực tiếp bằng Visual Studio Code.
   - **WinRAR**: Thực hiện nén/giải nén nâng cao qua WinRAR nếu máy tính đã cài đặt.
   - **Antigravity IDE**: Tích hợp mở nhanh dự án/file với Antigravity IDE.
-  - **Terminal**: Mở nhanh Windows Terminal hoặc cmd tại đường dẫn hiện tại (với môi trường không bị xung đột).
+  - **Terminal**: Mở nhanh Windows Terminal hoặc cmd tại đường dẫn hiện tại và ưu tiên biểu tượng chính thức của Windows Terminal.
 - **Tích Hợp Windows Explorer**: Bằng cách chạy file `install-context-menu.bat`, người dùng có thể thêm mục "Open with Monkez File Manager" vào menu chuột phải của Windows. Khi click, ứng dụng sẽ mở thẳng vào thư mục đó.
 
 ## 8. Quản Lý Drive và Bookmarks

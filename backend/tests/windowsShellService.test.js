@@ -13,9 +13,11 @@ const makeSpawn = (inspect) => (command, args, options) => {
   child.stdout = new PassThrough();
   child.stderr = new PassThrough();
   child.kill = () => {};
+  child.unref = () => {};
 
   process.nextTick(() => {
     inspect({ command, args, options });
+    child.emit('spawn');
     child.stdout.end('{"success":true}\n');
     child.emit('close', 0);
   });
@@ -88,6 +90,31 @@ test('rejects unsupported platforms and invalid clipboard modes', async () => {
       () => service.invokeCanonicalVerb(target, 'format'),
       /Unsupported canonical Shell verb/
     );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('launches the native Properties helper for the canonical verb', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'monkez-properties-test-'));
+  const target = path.join(tempDir, 'file.txt');
+  const helper = path.join(tempDir, 'properties-helper.exe');
+  fs.writeFileSync(target, 'test');
+  fs.writeFileSync(helper, 'stub');
+
+  try {
+    let captured;
+    const service = new WindowsShellService({
+      platform: 'win32',
+      propertiesHelperPath: helper,
+      spawnImpl: makeSpawn(details => { captured = details; })
+    });
+    const result = await service.invokeCanonicalVerb(target, 'properties');
+    assert.equal(result.success, true);
+    assert.equal(captured.command, helper);
+    assert.deepEqual(captured.args, [path.resolve(target)]);
+    assert.equal(captured.options.detached, true);
+    assert.equal(captured.options.stdio, 'ignore');
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
