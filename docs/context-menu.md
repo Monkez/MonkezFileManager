@@ -1,15 +1,17 @@
 # Menu Chuột Phải Theo Nhóm
 
-Từ phiên bản 1.7.1, menu chuột phải giữ đầy đủ chức năng của phiên bản 1.7.0 nhưng sắp xếp chúng thành các nhóm con. Mỗi nhóm mở ngay trong cùng vị trí menu và có nút quay lại.
+Từ phiên bản 1.7.1, menu chuột phải giữ đầy đủ chức năng của phiên bản 1.7.0 và dùng bố cục lai: thao tác quan trọng hiển thị trực tiếp, chức năng chuyên biệt được sắp xếp thành nhóm con.
 
 ## Khi Bấm Vào Tệp Hoặc Thư Mục
 
-- **Mở**: mở trực tiếp mục đang chọn.
-- **Quản lý tệp**: hiện trong Explorer, sao chép đường dẫn, Copy, Cut, tạo shortcut, đổi tên, xóa và xóa vĩnh viễn.
-- **Chia sẻ & tổ chức**: gửi/nhận Power Send, dấu trang và tính dung lượng thư mục.
+- Hàng lệnh trên cùng luôn có **Mở**, **Copy**, **Paste**, **Cut** và **Delete**.
+- **Đổi tên**, **Hiện trong Explorer**, **Gửi qua Power Send** và dấu trang của thư mục hiển thị trực tiếp.
+- **Tùy chọn tệp**: sao chép đường dẫn, tạo shortcut và xóa vĩnh viễn.
+- **Thư mục & thông tin**: nhận Power Send và tính dung lượng thư mục.
 - **Nén & giải nén**: ZIP cùng toàn bộ lựa chọn WinRAR trước đây.
 - **Mở bằng & công cụ**: Terminal, VS Code và Antigravity IDE nếu được cài đặt.
 - **Windows Shell**: toàn bộ Shell verb mà Windows cung cấp cho mục đang chọn.
+- **Thuộc tính**: luôn nằm ở cuối menu chính và mở hộp thoại Properties của Windows.
 
 ## Khi Bấm Vào Vùng Trống
 

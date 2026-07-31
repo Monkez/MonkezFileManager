@@ -26,7 +26,7 @@ Implemented operations:
 
 ## Context menu UX
 
-Version 1.7.1 keeps the full 1.7.0 command set and organizes it with `contextMenuPage`.
+Version 1.7.1 keeps the full 1.7.0 command set and uses a hybrid direct/grouped layout with `contextMenuPage`.
 
 - Item pages: `main`, `file`, `share`, `archive`, `apps`, `windows`.
 - Background pages: `main`, `create`, `folder`, `tools`.
@@ -34,6 +34,9 @@ Version 1.7.1 keeps the full 1.7.0 command set and organizes it with `contextMen
 - Opening a context menu resets the page to `main`; child pages include an in-place back header.
 - Windows Shell verbs continue loading when the item menu opens, matching the 1.7.0 behavior.
 - User-facing group labels are Vietnamese.
+- The top command strip must keep this order: Open, Copy, Paste, Cut, Delete.
+- Rename, reveal in Explorer, Power Send, contextual bookmark, and Properties remain on the main page.
+- Properties is the final main-page item and invokes the allowlisted canonical `properties` Shell verb.
 
 Keep the existing Task Manager as fallback. F5/F6, internal drag/drop, batch rename, delete and Power Send still use Monkez services.
 

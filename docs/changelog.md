@@ -10,6 +10,7 @@ Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng 
 - Menu tệp/thư mục có các nhóm Quản lý tệp, Chia sẻ & tổ chức, Nén & giải nén, Mở bằng & công cụ và Windows Shell.
 - Khôi phục đầy đủ lựa chọn ZIP, WinRAR, Power Send, shortcut, công cụ ngoài và Shell verb.
 - Menu vùng trống được chia thành Tạo mới, Thư mục hiện tại và Chia sẻ & công cụ; Dán và Làm mới vẫn truy cập trực tiếp.
+- Điều chỉnh menu tệp/thư mục sang bố cục lai: Mở, Copy, Paste, Cut và Delete nằm cùng hàng trên cùng; Đổi tên, Explorer, Power Send và Thuộc tính hiển thị trực tiếp.
 
 ## [1.7.0] - 31-07-2026
 

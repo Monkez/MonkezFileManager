@@ -6,6 +6,7 @@ import { getContextMenuPosition } from '../utils/contextMenuPosition';
 import {
   createWindowsShortcut,
   getWindowsShellVerbs,
+  invokeWindowsCanonicalVerb,
   invokeWindowsShellVerb,
   pasteWithWindowsShell,
   setWindowsShellClipboard
@@ -18,7 +19,7 @@ import {
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
-  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle
+  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle, Info
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -921,6 +922,18 @@ const Pane = ({
       }, 800);
     } catch (err) {
       alert(`Không thể chạy tác vụ Windows "${verb.name}": ${err.message}`);
+    }
+  };
+
+  const handleProperties = async () => {
+    const targetPath = contextMenu.targetItem?.path;
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+    if (!targetPath) return;
+
+    try {
+      await invokeWindowsCanonicalVerb(targetPath, 'properties');
+    } catch (err) {
+      alert(`Không thể mở Thuộc tính: ${err.message}`);
     }
   };
 
@@ -2079,16 +2092,33 @@ const Pane = ({
           {contextMenu.targetItem ? (
             contextMenuPage === 'main' ? (
               <>
-                <div className="context-menu-item context-menu-primary" onClick={() => { handleItemDoubleClick(contextMenu.targetItem); setContextMenu(prev => ({ ...prev, isOpen: false })); }}>
-                  <div className="context-menu-label"><ExternalLink size={15} /><span>Mở</span></div>
+                <div className="context-menu-command-strip" aria-label="Thao tác chính">
+                  <button type="button" onClick={() => { handleItemDoubleClick(contextMenu.targetItem); setContextMenu(prev => ({ ...prev, isOpen: false })); }} title="Mở">
+                    <ExternalLink size={16} /><span>Mở</span>
+                  </button>
+                  <button type="button" onClick={() => handleContextMenuAction('copy')} title="Sao chép (Ctrl+C)">
+                    <Copy size={16} /><span>Copy</span>
+                  </button>
+                  <button type="button" disabled={!shellFirstMode && clipboard.paths.length === 0} onClick={() => handleContextMenuAction('paste')} title="Dán (Ctrl+V)">
+                    <ClipboardPaste size={16} /><span>Paste</span>
+                  </button>
+                  <button type="button" onClick={() => handleContextMenuAction('cut')} title="Cắt (Ctrl+X)">
+                    <Scissors size={16} /><span>Cut</span>
+                  </button>
+                  <button type="button" className="danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }} title="Xóa (Delete)">
+                    <Trash2 size={16} /><span>Delete</span>
+                  </button>
                 </div>
                 <div className="context-menu-divider" />
+                <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('rename'); }}><div className="context-menu-label"><Edit size={14} /><span>Đổi tên</span></div><span className="context-menu-shortcut">F2</span></div>
+                <div className="context-menu-item" onClick={() => handleRevealInExplorer(contextMenu.targetItem.path)}><div className="context-menu-label"><Compass size={14} /><span>Hiện trong Explorer</span></div></div>
+                <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}><div className="context-menu-label"><Upload size={14} /><span>Gửi qua Power Send</span></div></div>
+                {contextMenu.targetItem.isDirectory && <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}><div className="context-menu-label"><Bookmark size={14} /><span>Thêm vào dấu trang</span></div></div>}
+                <div className="context-menu-divider" />
                 <div className="context-menu-group-item" onClick={() => setContextMenuPage('file')}>
-                  <div><FolderOpen size={16} /><span><strong>Quản lý tệp</strong><small>Sao chép, cắt, đổi tên, xóa, shortcut</small></span></div><ChevronRight size={15} />
+                  <div><FolderOpen size={16} /><span><strong>Tùy chọn tệp</strong><small>Đường dẫn, shortcut, xóa vĩnh viễn</small></span></div><ChevronRight size={15} />
                 </div>
-                <div className="context-menu-group-item" onClick={() => setContextMenuPage('share')}>
-                  <div><Wifi size={16} /><span><strong>Chia sẻ & tổ chức</strong><small>Power Send, dấu trang, dung lượng</small></span></div><ChevronRight size={15} />
-                </div>
+                {contextMenu.targetItem.isDirectory && <div className="context-menu-group-item" onClick={() => setContextMenuPage('share')}><div><Wifi size={16} /><span><strong>Thư mục & thông tin</strong><small>Nhận Power Send, tính dung lượng</small></span></div><ChevronRight size={15} /></div>}
                 <div className="context-menu-group-item" onClick={() => setContextMenuPage('archive')}>
                   <div><Archive size={16} /><span><strong>Nén & giải nén</strong><small>ZIP và toàn bộ tùy chọn WinRAR</small></span></div><ChevronRight size={15} />
                 </div>
@@ -2102,32 +2132,27 @@ const Pane = ({
                     <div><Monitor size={16} /><span><strong>Windows Shell</strong><small>Các tác vụ hệ thống đã đăng ký</small></span></div><ChevronRight size={15} />
                   </div>
                 )}
+                <div className="context-menu-divider" />
+                <div className="context-menu-item context-menu-primary" onClick={handleProperties}>
+                  <div className="context-menu-label"><Info size={14} /><span>Thuộc tính</span></div>
+                </div>
               </>
             ) : contextMenuPage === 'file' ? (
               <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Quản lý tệp</span></div>
+                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Tùy chọn tệp</span></div>
                 <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleRevealInExplorer(contextMenu.targetItem.path)}><div className="context-menu-label"><Compass size={14} /><span>Hiện trong Explorer</span></div></div>
                 <div className="context-menu-item" onClick={() => handleCopyPath(contextMenu.targetItem.path)}><div className="context-menu-label"><Copy size={14} /><span>Sao chép đường dẫn</span></div></div>
-                <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('copy')}><div className="context-menu-label"><Copy size={14} /><span>Sao chép</span></div><span className="context-menu-shortcut">Ctrl+C</span></div>
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('cut')}><div className="context-menu-label"><Scissors size={14} /><span>Cắt</span></div><span className="context-menu-shortcut">Ctrl+X</span></div>
                 {shellFirstMode && <div className="context-menu-item" onClick={handleCreateShortcut}><div className="context-menu-label"><Link size={14} /><span>Tạo shortcut tại đây</span></div></div>}
                 <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('rename'); }}><div className="context-menu-label"><Edit size={14} /><span>Đổi tên</span></div><span className="context-menu-shortcut">F2</span></div>
-                <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete'); }}><div className="context-menu-label"><Trash2 size={14} /><span>Xóa</span></div><span className="context-menu-shortcut">Del</span></div>
                 <div className="context-menu-item danger" onClick={() => { setContextMenu(prev => ({ ...prev, isOpen: false })); triggerFileAction('delete-permanent'); }}><div className="context-menu-label"><Trash size={14} /><span>Xóa vĩnh viễn</span></div><span className="context-menu-shortcut">Shift+Del</span></div>
               </>
             ) : contextMenuPage === 'share' ? (
               <>
-                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Chia sẻ & tổ chức</span></div>
+                <div className="context-menu-page-header" onClick={() => setContextMenuPage('main')}><ChevronLeft size={15} /><span>Thư mục & thông tin</span></div>
                 <div className="context-menu-divider" />
-                <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}><div className="context-menu-label"><Upload size={14} /><span>Gửi qua Power Send</span></div></div>
                 {contextMenu.targetItem.isDirectory && (
                   <>
                     <div className="context-menu-item" onClick={() => handleContextMenuAction('network-receive')}><div className="context-menu-label"><Download size={14} /><span>Nhận Power Send tại đây</span></div></div>
-                    <div className="context-menu-divider" />
-                    <div className="context-menu-item" onClick={() => handleContextMenuAction('bookmark-item')}><div className="context-menu-label"><Bookmark size={14} /><span>Thêm vào dấu trang</span></div></div>
                     <div className="context-menu-item" onClick={() => handleCalculateSize(contextMenu.targetItem)}><div className="context-menu-label"><Calculator size={14} /><span>Tính dung lượng thư mục</span></div></div>
                   </>
                 )}
