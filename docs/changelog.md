@@ -2,6 +2,15 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.7.1] - 31-07-2026
+
+### Cải Tiến
+
+- Giữ nguyên toàn bộ chức năng menu chuột phải của phiên bản 1.7.0 và tổ chức lại theo nhóm.
+- Menu tệp/thư mục có các nhóm Quản lý tệp, Chia sẻ & tổ chức, Nén & giải nén, Mở bằng & công cụ và Windows Shell.
+- Khôi phục đầy đủ lựa chọn ZIP, WinRAR, Power Send, shortcut, công cụ ngoài và Shell verb.
+- Menu vùng trống được chia thành Tạo mới, Thư mục hiện tại và Chia sẻ & công cụ; Dán và Làm mới vẫn truy cập trực tiếp.
+
 ## [1.7.0] - 31-07-2026
 
 ### Thêm Mới

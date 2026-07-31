@@ -41,7 +41,7 @@ Phiên bản 1.7.0 bật mặc định chế độ **Settings → Cấu Hình Du
 
 - Copy/Cut được ghi vào clipboard chuẩn nên có thể chuyển file qua lại giữa Monkez và Explorer.
 - Paste do Windows xử lý; quy tắc trùng tên và thông báo tiến trình sẽ theo hệ điều hành.
-- Nhấn chuột phải vào file để xem nhóm **Windows Shell · thử nghiệm** hoặc chọn **Create shortcut here**.
+- Nhấn chuột phải vào file, mở nhóm **Windows Shell** để xem tác vụ hệ thống hoặc nhóm **Quản lý tệp** để chọn **Tạo shortcut tại đây**.
 - Khi tắt chế độ này, Copy/Cut/Paste quay về Task Manager nội bộ và tiếp tục dùng quy tắc tên `- Copy`.
 
 Xem giới hạn và cách xử lý lỗi tại `docs/windows-shell-mode.md`.

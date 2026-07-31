@@ -1510,6 +1510,91 @@ body {
   user-select: none;
 }
 
+.context-menu-primary {
+  color: var(--text-main);
+  font-weight: 650;
+}
+
+.context-menu-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.context-menu-label > svg,
+.context-menu-label > .context-menu-app-icon-wrap {
+  flex: 0 0 auto;
+}
+
+.context-menu-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.context-menu-group-item > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.context-menu-group-item > div > svg {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.context-menu-group-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.context-menu-group-item strong {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.context-menu-group-item small {
+  color: var(--text-inactive);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu-group-item:hover,
+.context-menu-page-header:hover {
+  background: var(--bg-hover);
+  color: var(--accent-color);
+}
+
+.context-menu-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  user-select: none;
+}
+
+.context-menu-empty {
+  padding: 10px 14px;
+  color: var(--text-inactive);
+  font-size: 12px;
+}
+
 .context-menu-section-label {
   padding: 5px 10px 3px;
   color: var(--text-muted);

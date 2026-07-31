@@ -4,7 +4,7 @@ Last updated: 2026-07-31
 
 ## Current release
 
-- Version: `1.7.0`
+- Version: `1.7.1`
 - Windows-first Electron + React + local Express backend.
 - The working tree contained pre-existing startup/performance/layout edits before the Windows Shell experiment. Preserve those edits.
 
@@ -23,6 +23,17 @@ Implemented operations:
 - Shell `paste` verb on a destination folder;
 - list and invoke item verbs through `Shell.Application`;
 - create `.lnk` through `WScript.Shell`.
+
+## Context menu UX
+
+Version 1.7.1 keeps the full 1.7.0 command set and organizes it with `contextMenuPage`.
+
+- Item pages: `main`, `file`, `share`, `archive`, `apps`, `windows`.
+- Background pages: `main`, `create`, `folder`, `tools`.
+- Do not remove WinRAR, Power Send, external tool, destructive, or Windows Shell commands when refining the menu.
+- Opening a context menu resets the page to `main`; child pages include an in-place back header.
+- Windows Shell verbs continue loading when the item menu opens, matching the 1.7.0 behavior.
+- User-facing group labels are Vietnamese.
 
 Keep the existing Task Manager as fallback. F5/F6, internal drag/drop, batch rename, delete and Power Send still use Monkez services.
 
