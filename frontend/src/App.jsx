@@ -9,6 +9,10 @@ import PowerSendPanel from './components/PowerSendPanel';
 import PowerSendModal from './components/PowerSendModal';
 import { useTaskStore } from './stores/useTaskStore';
 import { usePowerSendStore } from './stores/usePowerSendStore';
+import {
+  pasteWithWindowsShell,
+  setWindowsShellClipboard
+} from './utils/windowsShellApi';
 import { 
   Trash2, RefreshCw, 
   Star, HelpCircle,
@@ -117,6 +121,11 @@ const App = () => {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
+  const [shellFirstMode, setShellFirstMode] = useState(() => {
+    const saved = localStorage.getItem('monkez_shell_first_mode');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
   const [defaultStartFolder, setDefaultStartFolder] = useState(() => {
     const saved = localStorage.getItem('monkez_start_folder');
     return saved || 'C:\\';
@@ -135,6 +144,11 @@ const App = () => {
   const handleOpenDefaultToggle = (val) => {
     setOpenInDefaultApp(val);
     localStorage.setItem('monkez_open_default_app', JSON.stringify(val));
+  };
+
+  const handleShellFirstModeToggle = (val) => {
+    setShellFirstMode(val);
+    localStorage.setItem('monkez_shell_first_mode', JSON.stringify(val));
   };
 
   const handleStartFolderChange = (val) => {
@@ -548,25 +562,49 @@ const App = () => {
       } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
         const activeSelection = paneSelections[activePaneId];
         if (activeSelection && activeSelection.selectedPaths.length > 0) {
-          fetch('/api/clipboard/copy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: activeSelection.selectedPaths })
-          }).catch(console.error);
+          e.preventDefault();
+          setClipboard({ paths: activeSelection.selectedPaths, type: 'copy' });
+          if (shellFirstMode) {
+            setWindowsShellClipboard(activeSelection.selectedPaths, 'copy').catch(console.error);
+          } else {
+            fetch('/api/clipboard/copy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paths: activeSelection.selectedPaths })
+            }).catch(console.error);
+          }
         }
       } else if (e.ctrlKey && e.key.toLowerCase() === 'x') {
         const activeSelection = paneSelections[activePaneId];
         if (activeSelection && activeSelection.selectedPaths.length > 0) {
-          fetch('/api/clipboard/copy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paths: activeSelection.selectedPaths })
-          }).catch(console.error);
+          e.preventDefault();
           setClipboard({ paths: activeSelection.selectedPaths, type: 'cut' });
+          if (shellFirstMode) {
+            setWindowsShellClipboard(activeSelection.selectedPaths, 'cut').catch(console.error);
+          } else {
+            fetch('/api/clipboard/copy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paths: activeSelection.selectedPaths })
+            }).catch(console.error);
+          }
         }
       } else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
         const activeSelection = paneSelections[activePaneId];
         if (!activeSelection || !activeSelection.currentPath) return;
+        e.preventDefault();
+
+        if (shellFirstMode) {
+          pasteWithWindowsShell(activeSelection.currentPath)
+            .then(() => {
+              if (clipboard.type === 'cut') {
+                setClipboard({ paths: [], type: 'copy' });
+              }
+              setTimeout(refreshAllPanes, 800);
+            })
+            .catch(console.error);
+          return;
+        }
 
         if (clipboard.paths.length > 0) {
           const taskType = clipboard.type === 'cut' ? 'move' : 'copy';
@@ -599,7 +637,7 @@ const App = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [panes, activePaneId, paneSelections, clipboard, handleF5F6Shortcut, runHistoryAction]);
+  }, [panes, activePaneId, paneSelections, clipboard, handleF5F6Shortcut, refreshAllPanes, runHistoryAction, shellFirstMode]);
 
   // Modal Submit Handlers
   const handleModalSubmit = async (fields) => {
@@ -1246,6 +1284,7 @@ const App = () => {
               showHiddenFiles={showHiddenFiles}
               showExtensions={showExtensions}
               openInDefaultApp={openInDefaultApp}
+              shellFirstMode={shellFirstMode}
             />
           ))}
         </div>
@@ -1387,6 +1426,20 @@ const App = () => {
                     />
                     <span>Mở file trực tiếp bằng ứng dụng mặc định của hệ điều hành</span>
                   </label>
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={shellFirstMode}
+                      onChange={(e) => handleShellFirstModeToggle(e.target.checked)}
+                      style={{ cursor: 'pointer', marginTop: '2px' }}
+                    />
+                    <span>
+                      Dùng Windows Shell cho Copy/Cut/Paste và menu hệ thống
+                      <small style={{ display: 'block', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.35 }}>
+                        Chế độ thử nghiệm: thao tác file chuẩn sẽ do Windows xử lý.
+                      </small>
+                    </span>
+                  </label>
                 </div>
               </div>
 
@@ -1461,6 +1514,7 @@ const App = () => {
                     localStorage.removeItem('monkez_show_hidden');
                     localStorage.removeItem('monkez_show_extensions');
                     localStorage.removeItem('monkez_open_default_app');
+                    localStorage.removeItem('monkez_shell_first_mode');
                     localStorage.removeItem('monkez_start_folder');
                     localStorage.removeItem('monkez_terminal_type');
                     localStorage.removeItem('monkez_topbar_open');
@@ -1470,6 +1524,7 @@ const App = () => {
                     setShowHiddenFiles(true);
                     setShowExtensions(true);
                     setOpenInDefaultApp(true);
+                    setShellFirstMode(true);
                     setDefaultStartFolder('C:\\');
                     setTerminalType('auto');
                     setShowTopbar(true);

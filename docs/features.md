@@ -21,6 +21,7 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
   - **Màu Xanh Dương** cho các tệp đang ở trạng thái Copy.
   - **Màu Đỏ & Độ mờ 70%** cho các tệp đang ở trạng thái Cut.
 - Khi người dùng bấm dán (`Paste`), hệ thống phát tín hiệu làm mới toàn bộ các Pane hiển thị để đảm bảo dữ liệu hiển thị đồng bộ tuyệt đối trên các màn hình.
+- Chế độ Windows Shell thử nghiệm ghi đúng trạng thái Copy/Cut vào clipboard hệ điều hành, cho phép trao đổi file hai chiều với Explorer và gọi Shell xử lý Paste.
 
 ## 5. Xem Trước Tệp Tin Nhanh (Preview Panel)
 - Khung xem trước (Preview Panel) nằm bên phải ứng dụng hiển thị thông tin chi tiết của tệp đang chọn:
@@ -32,7 +33,9 @@ Dưới đây là mô tả chi tiết về các tính năng có trong Monkez Fil
 ## 6. Menu Chuột Phải Tiện Ích (Context Menu Actions)
 - Mỗi lệnh trong menu chuột phải đều được tích hợp **Icon minh họa** để dễ dàng nhận diện.
 - Bấm chuột phải lên tệp hoặc vùng trống để mở Menu ngữ cảnh:
-  - **Menu Ngữ Cảnh Động Windows (Dynamic Context Menu)**: Ứng dụng tự động đọc Registry của Windows và hiển thị các lệnh chuột phải bên thứ 3 (như Git Bash, VS Code, ứng dụng diệt virus...) với icon nguyên bản (được trích xuất trực tiếp từ file `.exe` bằng Electron).
+  - **Windows Shell Actions (thử nghiệm)**: Ứng dụng lấy các verb mà Windows Shell công bố cho file, hiển thị trong một nhóm riêng và truyền lựa chọn lại cho Shell thực hiện.
+  - **Create shortcut here**: Tạo shortcut `.lnk` chuẩn Windows trong thư mục hiện tại.
+  - Cơ chế đọc Registry cũ vẫn được giữ trong backend làm phương án tương thích, nhưng không còn được mô tả là menu Explorer đầy đủ.
   - Sao chép đường dẫn tuyệt đối (`Copy Path`).
   - Mở thư mục chứa tệp trong Windows Explorer gốc (`Show in Explorer`).
   - **Xóa (Delete)**: Chuyển tệp tin vào Thùng rác (Recycle Bin) an toàn.

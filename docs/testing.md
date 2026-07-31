@@ -30,6 +30,9 @@ Các test hiện có:
 - `backend/tests/systemToolLauncher.test.js`: kiểm tra Device Manager dùng đường dẫn System32 tuyệt đối và lỗi spawn bất đồng bộ được trả về an toàn.
 - `backend/tests/fileOperations.test.js`: kiểm tra tạo/đổi tên/tính dung lượng, copy tránh ghi đè, batch rename conflict và undo/redo history.
 - `backend/tests/powerSendService.test.js`: kiểm tra mã/path an toàn, gộp nguồn cùng mã và truyền nhiều file/thư mục thật qua HTTP loopback.
+- `backend/tests/windowsShellService.test.js`: kiểm tra capability theo nền tảng, validation và bảo đảm path không bị ghép vào command PowerShell.
+
+Windows Shell bridge còn được smoke test thủ công bằng một file tạm: liệt kê verb và tạo shortcut `.lnk`. Không tự động chạy clipboard/paste trong test suite để tránh ghi đè clipboard của người đang chạy test.
 
 ## 3. Frontend Tests
 

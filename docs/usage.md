@@ -35,6 +35,17 @@ Khi chọn tệp tin và thực hiện thao tác:
 - **Dán (Ctrl + V)**: Sau khi dán tệp tin thành công, tất cả các khung hình liên quan sẽ được tự động làm mới để cập nhật nội dung đồng bộ.
 - Nếu dán file vào chính thư mục đang chứa file đó, ứng dụng tự tạo bản sao có tên `- Copy`, `- Copy 2`... thay vì báo lỗi.
 
+### Chế Độ Windows Shell Thử Nghiệm
+
+Phiên bản 1.7.0 bật mặc định chế độ **Settings → Cấu Hình Duyệt File → Dùng Windows Shell cho Copy/Cut/Paste và menu hệ thống**.
+
+- Copy/Cut được ghi vào clipboard chuẩn nên có thể chuyển file qua lại giữa Monkez và Explorer.
+- Paste do Windows xử lý; quy tắc trùng tên và thông báo tiến trình sẽ theo hệ điều hành.
+- Nhấn chuột phải vào file để xem nhóm **Windows Shell · thử nghiệm** hoặc chọn **Create shortcut here**.
+- Khi tắt chế độ này, Copy/Cut/Paste quay về Task Manager nội bộ và tiếp tục dùng quy tắc tên `- Copy`.
+
+Xem giới hạn và cách xử lý lỗi tại `docs/windows-shell-mode.md`.
+
 ## Task Manager
 
 Khi copy hoặc di chuyển nhiều tệp/thư mục lớn, ứng dụng sẽ hiển thị bảng **Tasks** ở góc dưới bên phải. Bảng này cho biết trạng thái, phần trăm tiến độ, dung lượng đã xử lý, tốc độ hiện tại, ETA và cho phép tạm dừng, tiếp tục hoặc hủy tác vụ đang chạy.

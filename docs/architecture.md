@@ -28,6 +28,16 @@ Trong các bước refactor tiếp theo, các nhóm route còn trong `app.js` n�
 
 Logic nghiệp vụ nên nằm trong `services/`, controller chỉ đọc request, gọi service và trả response.
 
+### Windows Shell Bridge Thử Nghiệm
+
+- `backend/services/windowsShellService.js`: chạy Windows PowerShell ở STA mode để truy cập clipboard file, `Shell.Application` và `WScript.Shell`.
+- `backend/routes/windowsShell.routes.js`: API localhost dưới `/api/windows-shell`.
+- `frontend/src/utils/windowsShellApi.js`: client dùng chung cho App và Pane.
+
+Script PowerShell là hằng số do ứng dụng kiểm soát. Path, verb và operation được truyền qua file JSON tạm thay vì ghép vào command line. Bridge hiện hỗ trợ clipboard Copy/Cut, Paste, liệt kê/chạy Shell verb và tạo `.lnk`.
+
+Đây là lớp thử nghiệm dựa trên Automation COM, chưa phải host `IContextMenu` native đầy đủ. Task Manager cũ vẫn tồn tại làm fallback và tiếp tục phục vụ các thao tác đặc thù của Monkez.
+
 ## 2. Frontend
 
 Frontend bắt đầu có lớp state dùng Zustand cho các tác vụ nền:

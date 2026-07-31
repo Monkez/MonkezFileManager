@@ -15,10 +15,12 @@ const { TaskManager } = require('./services/taskManager');
 const { OperationHistory } = require('./services/operationHistory');
 const { PowerSendService } = require('./services/powerSendService');
 const { launchSystemTool } = require('./services/systemToolLauncher');
+const { WindowsShellService } = require('./services/windowsShellService');
 const { createTasksRouter } = require('./routes/tasks.routes');
 const { createFileOperationsRouter } = require('./routes/fileOperations.routes');
 const { createHistoryRouter } = require('./routes/history.routes');
 const { createPowerSendRouter } = require('./routes/powerSend.routes');
+const { createWindowsShellRouter } = require('./routes/windowsShell.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +28,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const operationHistory = new OperationHistory();
 const taskManager = new TaskManager({ operationHistory });
 const powerSendService = new PowerSendService();
+const windowsShellService = new WindowsShellService();
 
 const allowedOrigins = new Set([
   `http://localhost:3000`,
@@ -58,6 +61,7 @@ app.use('/api', createFileOperationsRouter({ operationHistory }));
 app.use('/api', createHistoryRouter(operationHistory));
 app.use('/api/tasks', createTasksRouter(taskManager));
 app.use('/api/power-send', createPowerSendRouter(powerSendService));
+app.use('/api/windows-shell', createWindowsShellRouter(windowsShellService));
 
 // Bookmark JSON storage path - support Electron userData path and packaged writeable path
 let bookmarksCachedPath = null;

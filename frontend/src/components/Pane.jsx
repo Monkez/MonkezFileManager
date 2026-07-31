@@ -3,6 +3,13 @@ import { createPortal } from 'react-dom';
 import FileTable from './FileTable';
 import FileGrid from './FileGrid';
 import { getContextMenuPosition } from '../utils/contextMenuPosition';
+import {
+  createWindowsShortcut,
+  getWindowsShellVerbs,
+  invokeWindowsShellVerb,
+  pasteWithWindowsShell,
+  setWindowsShellClipboard
+} from '../utils/windowsShellApi';
 import { 
   Folder, File, Image, FileCode, Video, Music, FileText,
   ArrowLeft, ArrowRight, ArrowUp, Search, Plus, 
@@ -11,7 +18,7 @@ import {
   ExternalLink, Compass, Copy, Scissors, ClipboardPaste, 
   Bookmark, Calculator, Edit, Trash2, Trash, Archive, FolderOpen, 
   Terminal, Code, Cpu, FolderPlus, FilePlus, RefreshCw, Star,
-  Home, Monitor, Download, Upload, Wifi
+  Home, Monitor, Download, Upload, Wifi, Link, LoaderCircle
 } from 'lucide-react';
 
 const formatBytes = (bytes) => {
@@ -100,7 +107,8 @@ const Pane = ({
   setClipboard = () => {},
   showHiddenFiles = true,
   showExtensions = true,
-  openInDefaultApp = true
+  openInDefaultApp = true,
+  shellFirstMode = true
 }) => {
   const getStartFolder = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -222,6 +230,9 @@ const Pane = ({
     horizontalOrigin: 'cursor',
     targetItem: null
   });
+  const [shellVerbs, setShellVerbs] = useState([]);
+  const [shellVerbsLoading, setShellVerbsLoading] = useState(false);
+  const shellVerbRequestRef = useRef(0);
 
   const [shellApps, setShellApps] = useState({
     terminal: { available: true, path: 'cmd', iconUrl: '' },
@@ -259,6 +270,7 @@ const Pane = ({
   };
 
   useEffect(() => {
+    fetchShellApps();
     const fetchShellApps = async () => {
       try {
         const res = await fetch('/api/shell-apps');
@@ -270,7 +282,6 @@ const Pane = ({
         console.error('Failed to fetch shell apps:', err);
       }
     };
-    fetchShellApps();
   }, []);
 
   const handleAreaMouseDown = (e) => {
@@ -485,6 +496,29 @@ const Pane = ({
       horizontalOrigin: 'cursor',
       targetItem: item
     });
+
+    if (shellFirstMode) {
+      const requestId = ++shellVerbRequestRef.current;
+      setShellVerbs([]);
+      setShellVerbsLoading(true);
+      getWindowsShellVerbs(item.path)
+        .then(data => {
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbs(Array.isArray(data.verbs) ? data.verbs : []);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load Windows Shell verbs:', err);
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbs([]);
+          }
+        })
+        .finally(() => {
+          if (shellVerbRequestRef.current === requestId) {
+            setShellVerbsLoading(false);
+          }
+        });
+    }
   };
 
   const isEmptyAreaTarget = (target) => {
@@ -596,8 +630,22 @@ const Pane = ({
 
     if (action === 'copy') {
       setClipboard({ paths: selectedPaths, type: 'copy' });
+      if (shellFirstMode && selectedPaths.length > 0) {
+        try {
+          await setWindowsShellClipboard(selectedPaths, 'copy');
+        } catch (err) {
+          alert(`Windows Shell không thể sao chép vào clipboard: ${err.message}`);
+        }
+      }
     } else if (action === 'cut') {
       setClipboard({ paths: selectedPaths, type: 'cut' });
+      if (shellFirstMode && selectedPaths.length > 0) {
+        try {
+          await setWindowsShellClipboard(selectedPaths, 'cut');
+        } catch (err) {
+          alert(`Windows Shell không thể cắt vào clipboard: ${err.message}`);
+        }
+      }
     } else if (action === 'network-send') {
       if (selectedPaths.length > 0) {
         openModal('network-send', { paths: selectedPaths });
@@ -608,6 +656,24 @@ const Pane = ({
         : filesData.currentPath;
       openModal('network-receive', { destinationDir });
     } else if (action === 'paste') {
+      if (shellFirstMode) {
+        try {
+          setLoading(true);
+          await pasteWithWindowsShell(filesData.currentPath);
+          if (clipboard.type === 'cut') {
+            setClipboard({ paths: [], type: 'copy' });
+          }
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('refresh-all-panes'));
+          }, 800);
+        } catch (err) {
+          alert(`Windows Shell không thể dán: ${err.message}`);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       if (clipboard.paths.length === 0) return;
       const isCopy = clipboard.type === 'copy';
       const url = isCopy ? '/api/tasks/copy' : '/api/tasks/move';
@@ -831,6 +897,34 @@ const Pane = ({
         return t;
       });
     });
+  };
+
+  const handleWindowsShellVerb = async (verb) => {
+    const targetPath = contextMenu.targetItem?.path;
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+    if (!targetPath) return;
+
+    try {
+      await invokeWindowsShellVerb(targetPath, verb.id);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refresh-all-panes'));
+      }, 800);
+    } catch (err) {
+      alert(`Không thể chạy tác vụ Windows "${verb.name}": ${err.message}`);
+    }
+  };
+
+  const handleCreateShortcut = async () => {
+    const targetPath = contextMenu.targetItem?.path;
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+    if (!targetPath) return;
+
+    try {
+      await createWindowsShortcut(targetPath, filesData.currentPath);
+      window.dispatchEvent(new CustomEvent('refresh-all-panes'));
+    } catch (err) {
+      alert(`Không thể tạo shortcut: ${err.message}`);
+    }
   };
 
   // History Actions
@@ -1248,6 +1342,11 @@ const Pane = ({
       }).filter(Boolean);
       if (selectedPaths.length > 0) {
         setClipboard({ paths: selectedPaths, type: 'copy' });
+        if (shellFirstMode) {
+          setWindowsShellClipboard(selectedPaths, 'copy').catch(err => {
+            alert(`Windows Shell không thể sao chép vào clipboard: ${err.message}`);
+          });
+        }
       }
       return;
     } else if (e.ctrlKey && e.key === 'x') {
@@ -1258,6 +1357,11 @@ const Pane = ({
       }).filter(Boolean);
       if (selectedPaths.length > 0) {
         setClipboard({ paths: selectedPaths, type: 'cut' });
+        if (shellFirstMode) {
+          setWindowsShellClipboard(selectedPaths, 'cut').catch(err => {
+            alert(`Windows Shell không thể cắt vào clipboard: ${err.message}`);
+          });
+        }
       }
       return;
     } else if (e.ctrlKey && e.key === 'v') {
@@ -1982,6 +2086,35 @@ const Pane = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Scissors size={14} /> <span>Cut</span></div>
                 <span className="context-menu-shortcut">Ctrl+X</span>
               </div>
+              {shellFirstMode && (
+                <>
+                  <div className="context-menu-item" onClick={handleCreateShortcut}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Link size={14} /> <span>Create shortcut here</span></div>
+                  </div>
+                  <div className="context-menu-divider" />
+                  <div className="context-menu-section-label">Windows Shell · thử nghiệm</div>
+                  {shellVerbsLoading ? (
+                    <div className="context-menu-item disabled">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <LoaderCircle size={14} className="shell-verb-spinner" />
+                        <span>Đang tải tác vụ hệ thống…</span>
+                      </div>
+                    </div>
+                  ) : shellVerbs.map(verb => (
+                    <div
+                      className="context-menu-item"
+                      key={`${verb.id}-${verb.name}`}
+                      onClick={() => handleWindowsShellVerb(verb)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ExternalLink size={14} />
+                        <span>{verb.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="context-menu-divider" />
+                </>
+              )}
               <div className="context-menu-divider" />
               <div className="context-menu-item" onClick={() => handleContextMenuAction('network-send')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Upload size={14} /> <span>Network Send</span></div>
@@ -2119,8 +2252,8 @@ const Pane = ({
                 <div className="context-menu-divider" />
               )}
               <div 
-                className={`context-menu-item ${clipboard.paths.length === 0 ? 'disabled' : ''}`} 
-                onClick={() => { if (clipboard.paths.length > 0) handleContextMenuAction('paste'); }}
+                className={`context-menu-item ${!shellFirstMode && clipboard.paths.length === 0 ? 'disabled' : ''}`}
+                onClick={() => { if (shellFirstMode || clipboard.paths.length > 0) handleContextMenuAction('paste'); }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardPaste size={14} /> <span>Paste</span></div>
                 <span className="context-menu-shortcut">Ctrl+V</span>

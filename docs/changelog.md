@@ -2,6 +2,24 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.7.0] - 31-07-2026
+
+### Thêm Mới
+
+- Thêm chế độ **Windows Shell thử nghiệm**, bật/tắt trong Settings và bật mặc định cho bản thử nghiệm.
+- Copy/Cut dùng file-drop clipboard chuẩn Windows và ghi `Preferred DropEffect`, cho phép Copy/Cut qua lại với Explorer.
+- Paste gọi trực tiếp verb của Windows Shell tại thư mục hiện tại.
+- Menu chuột phải có nhóm **Windows Shell · thử nghiệm**, lấy và chạy các verb Shell của item.
+- Thêm **Create shortcut here**, tạo shortcut `.lnk` qua Windows COM.
+- Thêm API localhost `/api/windows-shell/*`, frontend client dùng chung và test cho bridge.
+- Thêm tài liệu `docs/windows-shell-mode.md` và trạng thái kỹ thuật trong `agents/`.
+
+### An Toàn Và Tương Thích
+
+- Dữ liệu path/verb được truyền qua file JSON tạm; không ghép input người dùng vào command PowerShell.
+- Task Manager cũ được giữ làm fallback khi tắt Windows Shell mode.
+- Chưa nhúng `IContextMenu` native đầy đủ; một số menu extension Windows 11 có thể chưa xuất hiện.
+
 ## [1.6.1] - 28-06-2026
 
 ### Cải Tiến
