@@ -2,6 +2,8 @@
 
 Từ phiên bản 1.7.1, menu chuột phải giữ đầy đủ chức năng của phiên bản 1.7.0 và dùng bố cục lai: thao tác quan trọng hiển thị trực tiếp, chức năng chuyên biệt được sắp xếp thành nhóm con.
 
+Từ phiên bản 1.7.3, menu tự đổi sang khoảng cách gọn và co nhẹ theo chiều cao cửa sổ khi cần. Toàn bộ lựa chọn được hiển thị trong một lần mở menu thay vì phải cuộn xuống.
+
 ## Khi Bấm Vào Tệp Hoặc Thư Mục
 
 - Hàng lệnh trên cùng luôn có **Mở**, **Copy**, **Paste**, **Cut** và **Delete**.

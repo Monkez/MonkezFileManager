@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import FileTable from './FileTable';
 import FileGrid from './FileGrid';
-import { getContextMenuPosition } from '../utils/contextMenuPosition';
+import { getContextMenuFitScale, getContextMenuPosition } from '../utils/contextMenuPosition';
 import {
   createWindowsShortcut,
   invokeWindowsCanonicalVerb,
@@ -453,12 +453,27 @@ const Pane = ({
   useLayoutEffect(() => {
     if (contextMenu.isOpen && contextMenuRef.current) {
       const menuEl = contextMenuRef.current;
+      menuEl.classList.remove('context-menu-compact');
+      menuEl.style.transform = 'none';
+      menuEl.style.maxHeight = 'none';
+      menuEl.style.overflowY = 'visible';
+
+      const availableHeight = Math.max(120, window.innerHeight - 16);
+      if (menuEl.scrollHeight > availableHeight) {
+        menuEl.classList.add('context-menu-compact');
+      }
+
       const rect = menuEl.getBoundingClientRect();
+      const fullHeight = menuEl.scrollHeight;
+      const fitScale = getContextMenuFitScale({
+        menuHeight: fullHeight,
+        viewportHeight: window.innerHeight
+      });
       const position = getContextMenuPosition({
         anchorX: contextMenu.x,
         anchorY: contextMenu.y,
-        menuWidth: rect.width,
-        menuHeight: menuEl.scrollHeight,
+        menuWidth: rect.width * fitScale,
+        menuHeight: fullHeight * fitScale,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
         horizontalOrigin: contextMenu.horizontalOrigin
@@ -466,7 +481,8 @@ const Pane = ({
 
       menuEl.style.top = `${position.y}px`;
       menuEl.style.left = `${position.x}px`;
-      menuEl.style.maxHeight = `${position.maxHeight}px`;
+      menuEl.style.transformOrigin = 'top left';
+      menuEl.style.transform = `scale(${fitScale})`;
     }
   }, [
     contextMenu.isOpen,
@@ -2037,7 +2053,7 @@ const Pane = ({
       {contextMenu.isOpen && createPortal((
         <div 
           ref={contextMenuRef}
-          className="context-menu glass"
+          className="context-menu context-menu-fitted glass"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >

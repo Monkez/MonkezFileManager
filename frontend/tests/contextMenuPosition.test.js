@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getContextMenuPosition } from '../src/utils/contextMenuPosition.js';
+import {
+  getContextMenuFitScale,
+  getContextMenuPosition
+} from '../src/utils/contextMenuPosition.js';
 
 test('context menu opens beside the cursor when there is room on the right', () => {
   assert.deepEqual(getContextMenuPosition({
@@ -66,4 +69,16 @@ test('context menu shifts upward just enough when full height can still fit', ()
     viewportWidth: 1280,
     viewportHeight: 720
   }), { x: 324, y: 572, maxHeight: 140 });
+});
+
+test('context menu scales down only when its full content is taller than the viewport', () => {
+  assert.equal(getContextMenuFitScale({
+    menuHeight: 500,
+    viewportHeight: 720
+  }), 1);
+
+  assert.equal(getContextMenuFitScale({
+    menuHeight: 880,
+    viewportHeight: 720
+  }), 0.8);
 });

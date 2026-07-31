@@ -38,3 +38,13 @@ export const getContextMenuPosition = ({
 
   return { x, y, maxHeight };
 };
+
+export const getContextMenuFitScale = ({
+  menuHeight,
+  viewportHeight,
+  margin = 8
+}) => {
+  if (!Number.isFinite(menuHeight) || menuHeight <= 0) return 1;
+  const availableHeight = Math.max(120, viewportHeight - (margin * 2));
+  return Math.min(1, availableHeight / menuHeight);
+};

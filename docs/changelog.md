@@ -2,6 +2,12 @@
 
 Tài liệu này ghi lại lịch sử thay đổi và cập nhật tính năng của Monkez File Manager.
 
+## [1.7.3] - 31-07-2026
+
+### Cải Tiến
+
+- Menu chuột phải tự đẩy lên, thu gọn khoảng cách và co nhẹ theo chiều cao cửa sổ để luôn hiển thị đầy đủ các lựa chọn, không còn bắt người dùng cuộn xuống xem phần cuối.
+
 ## [1.7.2] - 31-07-2026
 
 ### Cải Tiến Và Sửa Lỗi

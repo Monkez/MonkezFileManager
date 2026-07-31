@@ -4,7 +4,7 @@ Last updated: 2026-07-31
 
 ## Current release
 
-- Version: `1.7.2`
+- Version: `1.7.3`
 - Windows-first Electron + React + local Express backend.
 - The working tree contained pre-existing startup/performance/layout edits before the Windows Shell experiment. Preserve those edits.
 
@@ -26,7 +26,7 @@ Implemented operations:
 
 ## Context menu UX
 
-Version 1.7.2 keeps the full command set needed by the app and uses a hybrid direct/grouped layout with `contextMenuPage`.
+Version 1.7.3 keeps the full command set needed by the app and uses a hybrid direct/grouped layout with `contextMenuPage`.
 
 - Item pages: `main`, `file`, `share`, `archive`, `apps`.
 - Background pages: `main`, `create`, `folder`, `tools`.
@@ -38,6 +38,7 @@ Version 1.7.2 keeps the full command set needed by the app and uses a hybrid dir
 - Rename, reveal in Explorer, Power Send, contextual bookmark, and Properties remain on the main page.
 - Compression commands are direct main-page items immediately before Properties and use the WinRAR icon when available.
 - Properties is the final main-page item and launches the bundled Win32 helper. The helper obtains the item's native `IContextMenu`, resolves its canonical `properties` command, and invokes that exact command on an STA thread.
+- The context menu first switches to compact spacing, then applies a proportional fit scale only when needed so every command remains visible inside the app window without scrolling.
 
 Keep the existing Task Manager as fallback. F5/F6, internal drag/drop, batch rename, delete and Power Send still use Monkez services.
 

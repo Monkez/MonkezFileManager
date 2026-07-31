@@ -1497,6 +1497,40 @@ body {
   overscroll-behavior: contain;
 }
 
+.context-menu-fitted {
+  overflow: visible;
+}
+
+.context-menu-compact {
+  padding-block: 2px;
+}
+
+.context-menu-compact .context-menu-command-strip {
+  padding: 3px 6px 4px;
+}
+
+.context-menu-compact .context-menu-command-strip button {
+  padding-block: 4px;
+  gap: 2px;
+}
+
+.context-menu-compact .context-menu-item {
+  padding-block: 5px;
+}
+
+.context-menu-compact .context-menu-group-item {
+  padding-block: 5px;
+}
+
+.context-menu-compact .context-menu-group-item small {
+  margin-top: 1px;
+  line-height: 1.1;
+}
+
+.context-menu-compact .context-menu-divider {
+  margin-block: 2px;
+}
+
 .context-menu-item {
   display: flex;
   justify-content: space-between;
